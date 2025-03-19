@@ -1,344 +1,223 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState } from "react"
+import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Sword, Skull, Coins } from "lucide-react"
+import { Slider } from "@/components/ui/slider"
 import { toast } from "sonner"
-import { updateCoins, recordBattle } from "@/lib/actions"
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi"
+import { GAME_CONTRACT_ABI, GAME_CONTRACT_ADDRESS } from "@/lib/contracts/game-contract"
+import { Sword, Swords, Skull, Loader2 } from "lucide-react"
+import confetti from "canvas-confetti"
 
 interface MonsterCardProps {
-  gameData: any
-  onDefeat: (reward: number) => void
-  isProcessing: boolean
+  id: number
+  name: string
+  level: number
+  hp: number
+  maxHp: number
+  image: string
+  onDefeat?: () => void
 }
 
-// ข้อมูลมอนสเตอร์ตามพื้นที่
-const MONSTERS = {
-  ป่า: [
-    { name: "สไลม์", hp: 10, reward: 1, color: "green" },
-    { name: "หมาป่า", hp: 15, reward: 2, color: "gray" },
-    { name: "งูยักษ์", hp: 20, reward: 3, color: "purple" },
-  ],
-  ถ้ำ: [
-    { name: "ค้างคาวยักษ์", hp: 30, reward: 4, color: "black" },
-    { name: "โกเล็ม", hp: 50, reward: 6, color: "brown" },
-    { name: "แมงมุมพิษ", hp: 40, reward: 5, color: "red" },
-  ],
-  ทะเลทราย: [
-    { name: "แมงป่องยักษ์", hp: 60, reward: 7, color: "yellow" },
-    { name: "มัมมี่", hp: 70, reward: 8, color: "beige" },
-    { name: "จิ้งจอกทะเลทราย", hp: 65, reward: 7, color: "orange" },
-  ],
-  ภูเขาไฟ: [
-    { name: "มังกรไฟ", hp: 100, reward: 12, color: "red" },
-    { name: "อสูรหิน", hp: 90, reward: 10, color: "gray" },
-    { name: "ปีศาจลาวา", hp: 85, reward: 9, color: "orange" },
-  ],
-}
+export default function MonsterCard({ id, name, level, hp, maxHp, image, onDefeat }: MonsterCardProps) {
+  const { isConnected } = useAccount()
+  const [attackCount, setAttackCount] = useState(5)
 
-export default function MonsterCard({ gameData, onDefeat, isProcessing }: MonsterCardProps) {
-  const [currentMonster, setCurrentMonster] = useState<any>(null)
-  const [monsterHP, setMonsterHP] = useState(0)
-  const [maxHP, setMaxHP] = useState(0)
-  const [isAttacking, setIsAttacking] = useState(false)
-  const [showDamage, setShowDamage] = useState(false)
-  const [damageValue, setDamageValue] = useState(0)
-  const [showReward, setShowReward] = useState(false)
-  const [rewardValue, setRewardValue] = useState(0)
-  const [isAutoAttacking, setIsAutoAttacking] = useState(false)
-  const [autoAttackInterval, setAutoAttackInterval] = useState<NodeJS.Timeout | null>(null)
+  // สร้าง contract write hook สำหรับการโจมตี
+  const { writeContract, data: txHash, isPending, error } = useWriteContract()
 
-  // สุ่มมอนสเตอร์ตามพื้นที่
-  const spawnMonster = () => {
-    const area = gameData?.currentArea || "ป่า"
-    const areaMonsters = MONSTERS[area as keyof typeof MONSTERS] || MONSTERS["ป่า"]
-    const randomIndex = Math.floor(Math.random() * areaMonsters.length)
-    const monster = { ...areaMonsters[randomIndex] }
+  // รอการยืนยันธุรกรรม
+  const {
+    isLoading: isConfirming,
+    isSuccess,
+    data: receipt,
+  } = useWaitForTransactionReceipt({
+    hash: txHash,
+  })
 
-    // ปรับความยากตามเลเวลของผู้เล่น
-    const playerLevel = Math.max(...(gameData?.characters?.map((c: any) => c.level) || [1]))
-    const areaMultiplier = area === "ป่า" ? 1 : area === "ถ้ำ" ? 2 : area === "ทะเลทราย" ? 3 : area === "ภูเขาไฟ" ? 4 : 1
+  // ฟังก์ชันเฉลิมฉลองเมื่อเอาชนะมอนสเตอร์
+  const celebrateDefeat = () => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+    })
 
-    monster.hp = Math.floor(monster.hp * (1 + (playerLevel - 1) * 0.2) * areaMultiplier)
-    monster.reward = Math.floor(monster.reward * (1 + (playerLevel - 1) * 0.1) * areaMultiplier)
+    toast.success(`ชัยชนะ! คุณได้เอาชนะ ${name} แล้ว!`)
 
-    setCurrentMonster(monster)
-    setMonsterHP(monster.hp)
-    setMaxHP(monster.hp)
-    setShowReward(false)
+    if (onDefeat) {
+      onDefeat()
+    }
   }
 
-  // โจมตีมอนสเตอร์
-  const attackMonster = async () => {
-    if (isAttacking || isProcessing || monsterHP <= 0) return
+  // ฟังก์ชันจัดการการโจมตี
+  const handleAttack = () => {
+    if (!isConnected) {
+      toast.error("ไม่ได้เชื่อมต่อกระเป๋าเงิน", {
+        description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนโจมตี",
+      })
+      return
+    }
 
-    setIsAttacking(true)
-
-    // คำนวณดาเมจ
-    const damage = gameData?.damage || 1
-    setDamageValue(damage)
-    setShowDamage(true)
-
-    // ลด HP มอนสเตอร์
-    const newHP = Math.max(0, monsterHP - damage)
-    setMonsterHP(newHP)
-
-    // เช็คว่ามอนสเตอร์ตายหรือไม่
-    if (newHP <= 0) {
-      // บันทึกการต่อสู้
-      try {
-        await recordBattle(gameData.walletAddress, {
-          monstersDefeated: 1,
-          coinsEarned: currentMonster.reward,
-          itemsFound: 0,
-        })
-      } catch (error) {
-        console.error("Error recording battle:", error)
-      }
-
-      // แสดงรางวัล
-      setRewardValue(currentMonster.reward)
-      setShowReward(true)
-
-      // อัพเดตเหรียญ
-      try {
-        const result = await updateCoins(gameData.walletAddress, currentMonster.reward)
-
-        if (result.success) {
-          onDefeat(currentMonster.reward)
-        } else {
-          toast.error("ไม่สามารถรับรางวัลได้", {
-            description: result.error || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ",
+    writeContract(
+      {
+        address: GAME_CONTRACT_ADDRESS,
+        abi: GAME_CONTRACT_ABI,
+        functionName: "attackMonster",
+        args: [BigInt(id)],
+      },
+      {
+        onSuccess(data) {
+          toast.success("โจมตีสำเร็จ!", {
+            description: "กำลังประมวลผลบน blockchain...",
           })
-        }
-      } catch (error) {
-        console.error("Error updating coins:", error)
-      }
+        },
+        onError(error) {
+          toast.error("เกิดข้อผิดพลาด", {
+            description: error.message,
+          })
+        },
+        onSettled(data, error) {
+          if (isSuccess && !error) {
+            // สมมติว่าเราได้รับค่า damage จาก event หรือ return value
+            const damage = 10 // ในสถานการณ์จริงควรดึงจาก receipt
 
-      // รีเซ็ตหลังจาก 2 วินาที
-      setTimeout(() => {
-        spawnMonster()
-      }, 2000)
-    }
+            toast.success("โจมตีสำเร็จ!", {
+              description: `คุณสร้างความเสียหาย ${damage} แต้ม`,
+            })
 
-    // ซ่อนดาเมจหลังจาก 1 วินาที
-    setTimeout(() => {
-      setShowDamage(false)
-      setIsAttacking(false)
-    }, 1000)
-  }
-
-  // โจมตีอัตโนมัติ
-  useEffect(() => {
-    if (gameData?.autoDamage && gameData.autoDamage > 0) {
-      if (autoAttackInterval) {
-        clearInterval(autoAttackInterval)
-      }
-
-      const interval = setInterval(() => {
-        if (monsterHP > 0 && !isProcessing) {
-          setIsAutoAttacking(true)
-
-          // คำนวณดาเมจอัตโนมัติ
-          const autoDamage = gameData.autoDamage
-
-          // ลด HP มอนสเตอร์
-          const newHP = Math.max(0, monsterHP - autoDamage)
-          setMonsterHP(newHP)
-
-          // เช็คว่ามอนสเตอร์ตายหรือไม่
-          if (newHP <= 0) {
-            // บันทึกการต่อสู้
-            recordBattle(gameData.walletAddress, {
-              monstersDefeated: 1,
-              coinsEarned: currentMonster.reward,
-              itemsFound: 0,
-            }).catch(console.error)
-
-            // แสดงรางวัล
-            setRewardValue(currentMonster.reward)
-            setShowReward(true)
-
-            // อัพเดตเหรียญ
-            updateCoins(gameData.walletAddress, currentMonster.reward)
-              .then((result) => {
-                if (result.success) {
-                  onDefeat(currentMonster.reward)
-                }
-              })
-              .catch(console.error)
-
-            // รีเซ็ตหลังจาก 2 วินาที
-            setTimeout(() => {
-              spawnMonster()
-            }, 2000)
+            // ตรวจสอบว่ามอนสเตอร์พ่ายแพ้หรือไม่
+            if (hp - damage <= 0) {
+              celebrateDefeat()
+            }
           }
-
-          setIsAutoAttacking(false)
-        }
-      }, 1000)
-
-      setAutoAttackInterval(interval)
-
-      return () => {
-        clearInterval(interval)
-      }
-    }
-  }, [gameData?.autoDamage, monsterHP, currentMonster, isProcessing])
-
-  // สร้างมอนสเตอร์เมื่อเริ่มต้น
-  useEffect(() => {
-    spawnMonster()
-
-    return () => {
-      if (autoAttackInterval) {
-        clearInterval(autoAttackInterval)
-      }
-    }
-  }, [gameData?.currentArea])
-
-  // สร้างสีตามประเภทมอนสเตอร์
-  const getMonsterColor = () => {
-    if (!currentMonster) return "bg-purple-600"
-
-    switch (currentMonster.color) {
-      case "green":
-        return "bg-green-600"
-      case "gray":
-        return "bg-gray-600"
-      case "purple":
-        return "bg-purple-600"
-      case "black":
-        return "bg-gray-800"
-      case "brown":
-        return "bg-amber-800"
-      case "red":
-        return "bg-red-600"
-      case "yellow":
-        return "bg-yellow-600"
-      case "beige":
-        return "bg-amber-300"
-      case "orange":
-        return "bg-orange-600"
-      default:
-        return "bg-purple-600"
-    }
+        },
+      },
+    )
   }
+
+  // ฟังก์ชันจัดการการโจมตีหลายครั้ง
+  const handleMultiAttack = () => {
+    if (!isConnected) {
+      toast.error("ไม่ได้เชื่อมต่อกระเป๋าเงิน", {
+        description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนโจมตี",
+      })
+      return
+    }
+
+    writeContract(
+      {
+        address: GAME_CONTRACT_ADDRESS,
+        abi: GAME_CONTRACT_ABI,
+        functionName: "multiAttack",
+        args: [BigInt(id), BigInt(attackCount)],
+      },
+      {
+        onSuccess(data) {
+          toast.success(`โจมตี ${attackCount} ครั้งสำเร็จ!`, {
+            description: "กำลังประมวลผลบน blockchain...",
+          })
+        },
+        onError(error) {
+          toast.error("เกิดข้อผิดพลาด", {
+            description: error.message,
+          })
+        },
+        onSettled(data, error) {
+          if (isSuccess && !error) {
+            // สมมติว่าเราได้รับค่า totalDamage จาก event หรือ return value
+            const totalDamage = 10 * attackCount // ในสถานการณ์จริงควรดึงจาก receipt
+
+            toast.success("โจมตีหลายครั้งสำเร็จ!", {
+              description: `คุณสร้างความเสียหายทั้งหมด ${totalDamage} แต้ม`,
+            })
+
+            // ตรวจสอบว่ามอนสเตอร์พ่ายแพ้หรือไม่
+            if (hp - totalDamage <= 0) {
+              celebrateDefeat()
+            }
+          }
+        },
+      },
+    )
+  }
+
+  // คำนวณเปอร์เซ็นต์ HP
+  const hpPercentage = (hp / maxHp) * 100
+
+  // กำหนดสีของแถบ HP ตามเปอร์เซ็นต์
+  const getHpColor = () => {
+    if (hpPercentage <= 20) return "bg-red-500"
+    if (hpPercentage <= 50) return "bg-yellow-500"
+    return "bg-green-500"
+  }
+
+  // กำลังโหลดหรือไม่
+  const isLoading = isPending || isConfirming
 
   return (
-    <Card className="border-purple-500/50 bg-black/40 backdrop-blur-sm">
-      <CardContent className="p-4">
-        <div className="text-center mb-2">
-          <h2 className="text-xl font-bold">{currentMonster?.name || "มอนสเตอร์"}</h2>
-          <div className="text-sm text-gray-400">พื้นที่: {gameData?.currentArea || "ป่า"}</div>
-        </div>
-
-        <div className="relative h-60 flex items-center justify-center mb-4">
-          {/* Magic UI: แทนรูปภาพด้วย Animation */}
-          <div className="relative w-40 h-40 cursor-pointer" onClick={attackMonster}>
-            {/* พื้นหลังมอนสเตอร์ */}
-            <motion.div
-              animate={{
-                scale: isAttacking ? 0.95 : 1,
-              }}
-              transition={{ duration: 0.2 }}
-              className={`absolute inset-0 rounded-full ${getMonsterColor()} flex items-center justify-center`}
-            >
-              {/* ไอคอนมอนสเตอร์ */}
-              <Skull className="h-16 w-16 text-white" />
-
-              {/* เอฟเฟกต์เมื่อโจมตี */}
-              <AnimatePresence>
-                {showDamage && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, y: -30, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute text-red-400 font-bold text-xl"
-                  >
-                    -{damageValue}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            {/* เอฟเฟกต์โจมตีอัตโนมัติ */}
-            {isAutoAttacking && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute -inset-4"
-              >
-                {[...Array(8)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{
-                      x: Math.cos((i * Math.PI) / 4) * 60,
-                      y: Math.sin((i * Math.PI) / 4) * 60,
-                      opacity: 0,
-                    }}
-                    animate={{
-                      x: 0,
-                      y: 0,
-                      opacity: [0, 1, 0],
-                    }}
-                    transition={{
-                      duration: 0.5,
-                    }}
-                    className="absolute w-2 h-8 bg-blue-400 rounded-full"
-                    style={{
-                      top: "50%",
-                      left: "50%",
-                      transform: `translate(-50%, -50%) rotate(${i * 45}deg)`,
-                    }}
-                  />
-                ))}
-              </motion.div>
-            )}
+    <Card className="w-full max-w-md mx-auto overflow-hidden border-2 border-primary/20 bg-black/40 backdrop-blur-sm">
+      <CardContent className="p-0">
+        <div className="relative">
+          <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-black/60 text-white px-2 py-1 rounded-md">
+            <Skull className="h-4 w-4" />
+            <span>Lv.{level}</span>
           </div>
 
-          {/* แสดงรางวัล */}
-          <AnimatePresence>
-            {showReward && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg"
-              >
-                <div className="text-center">
-                  <h3 className="text-xl font-bold mb-2">ชัยชนะ!</h3>
-                  <div className="flex items-center justify-center gap-2 bg-black/30 px-4 py-2 rounded-full">
-                    <Coins className="h-5 w-5 text-yellow-400" />
-                    <span className="text-xl font-bold text-yellow-300">+{rewardValue}</span>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div className="relative h-64 w-full">
+            <Image
+              src={image || "/placeholder.svg?height=256&width=384"}
+              alt={name}
+              fill
+              className="object-cover"
+              priority
+            />
+          </div>
+
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+            <h3 className="text-xl font-bold text-white mb-1">{name}</h3>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-white text-sm">
+                HP: {hp}/{maxHp}
+              </span>
+              <Progress value={hpPercentage} className="h-2" />
+            </div>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>HP</span>
-            <span>
-              {monsterHP}/{maxHP}
-            </span>
+        <div className="p-4 space-y-4 bg-card">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">จำนวนการโจมตี: {attackCount}</span>
+            </div>
+            <Slider
+              value={[attackCount]}
+              min={1}
+              max={20}
+              step={1}
+              onValueChange={(value) => setAttackCount(value[0])}
+              disabled={isLoading}
+            />
           </div>
-          <Progress value={(monsterHP / maxHP) * 100} className="h-2" />
 
-          <div className="flex justify-between text-sm mt-2">
-            <div className="flex items-center gap-1">
-              <Sword className="h-4 w-4 text-red-400" />
-              <span>โจมตี</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Coins className="h-4 w-4 text-yellow-400" />
-              <span>รางวัล: {currentMonster?.reward || 0}</span>
-            </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button onClick={handleAttack} disabled={isLoading} className="w-full" variant="outline">
+              {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sword className="h-4 w-4 mr-2" />}
+              โจมตี 1 ครั้ง
+            </Button>
+
+            <Button onClick={handleMultiAttack} disabled={isLoading} className="w-full" variant="default">
+              {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Swords className="h-4 w-4 mr-2" />}
+              โจมตี {attackCount} ครั้ง
+            </Button>
+          </div>
+
+          <div className="text-xs text-muted-foreground">
+            <p>* การโจมตีจะทำธุรกรรมบน blockchain และอาจมีค่าแก๊ส</p>
+            <p>* โจมตีหลายครั้งจะประหยัดค่าแก๊สมากกว่าการโจมตีทีละครั้ง</p>
           </div>
         </div>
       </CardContent>

@@ -1,10 +1,10 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { useWeb3 } from "@/lib/web3-client"
+import { useRouter } from "next/navigation"
+import { useAccount } from "wagmi"
 import { useI18n } from "@/lib/i18n"
 import {
   SidebarProvider,
@@ -33,8 +33,9 @@ interface GameLayoutProps {
 }
 
 export default function GameLayout({ children, gameData, playerAddress }: GameLayoutProps) {
-  const { address, disconnect } = useWeb3()
+  const { address, isConnected } = useAccount()
   const { t } = useI18n()
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
 
   // Fix hydration issues
@@ -42,13 +43,20 @@ export default function GameLayout({ children, gameData, playerAddress }: GameLa
     setMounted(true)
   }, [])
 
-  const handleDisconnect = () => {
-    disconnect()
+  // Redirect to home if not connected
+  useEffect(() => {
+    if (mounted && !isConnected) {
+      router.push("/")
+    }
+  }, [mounted, isConnected, router])
+
+  const handleLogout = () => {
+    // ใช้ router.push แทน window.location.href เพื่อให้เป็น client-side navigation
+    router.push("/")
     toast.success(t("common.success"), {
-      description: t("common.loading"),
+      description: t("common.logout"),
+      position: "top-right",
     })
-    // Redirect to home page
-    window.location.href = "/"
   }
 
   if (!mounted) return null
@@ -122,7 +130,7 @@ export default function GameLayout({ children, gameData, playerAddress }: GameLa
 
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Home">
+                <SidebarMenuButton tooltip="Home" onClick={() => router.push("/")}>
                   <Home className="h-4 w-4 text-gray-400" />
                   <span>Home</span>
                 </SidebarMenuButton>
@@ -158,7 +166,7 @@ export default function GameLayout({ children, gameData, playerAddress }: GameLa
                 <ThemeToggle />
               </div>
               <NetworkSwitcher />
-              <Button variant="destructive" size="sm" className="w-full mt-2" onClick={handleDisconnect}>
+              <Button variant="destructive" size="sm" className="w-full mt-2" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 {t("common.back")}
               </Button>
@@ -166,7 +174,7 @@ export default function GameLayout({ children, gameData, playerAddress }: GameLa
           </SidebarFooter>
         </Sidebar>
 
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-6 pt-16">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
             {children}
           </motion.div>
