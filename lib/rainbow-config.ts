@@ -29,20 +29,17 @@ export const config = getDefaultConfig({
   // แก้ไขปัญหา chrome.runtime.sendMessage error
   walletConnectParameters: {
     projectId: walletConnectProjectId,
-    metadata: {
-      name: "Web3 Adventure Game",
-      description: "A Web3 Adventure Game with NFT integration",
-      url: "https://web3-adventure-game.vercel.app",
-      icons: ["/images/ui/game-logo.png"],
-    },
-    // ปิดการใช้งาน extension detection เพื่อหลีกเลี่ยง chrome.runtime error
-    optionalChains: chains.map((chain) => chain.id),
+    showQrModal: true,
     qrModalOptions: {
-      enableExplorer: true,
-      explorerRecommendedWalletIds: "NONE",
-      explorerExcludedWalletIds: "NONE",
-      privacyPolicyUrl: undefined,
-      termsOfServiceUrl: undefined,
+      themeMode: "dark",
+      explorerRecommendedWalletIds: [],
+      enableExplorer: false,
+    },
+    metadata: {
+      name: "Adventure Clicker",
+      description: "Web3 Clicker Game",
+      url: "https://adventure-clicker.vercel.app",
+      icons: ["/images/ui/game-logo.png"],
     },
   },
 });

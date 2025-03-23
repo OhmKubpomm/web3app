@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useWeb3 } from "@/lib/web3-client";
 import { useAccount, useChainId } from "wagmi";
 import { getNetworkName } from "@/lib/web3-client";
-import { Wallet, ChevronDown, Check, ExternalLink } from "lucide-react";
+import { Wallet, ChevronDown, ExternalLink, LogOut, Copy } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Web3Status() {
   const { address, isConnected, disconnect } = useWeb3();
@@ -24,6 +25,12 @@ export default function Web3Status() {
   const chainId = useChainId();
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // useEffect only runs on the client, so now we can safely show the UI
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // ฟังก์ชันตัดการเชื่อมต่อและกลับไปหน้าแรก
   const handleDisconnect = () => {
@@ -66,6 +73,15 @@ export default function Web3Status() {
   };
 
   // ถ้าไม่ได้เชื่อมต่อ ให้แสดงปุ่มเชื่อมต่อ
+  if (!mounted) {
+    return (
+      <Button variant="outline" size="sm" className="animate-pulse">
+        <Wallet className="mr-2 h-4 w-4" />
+        กำลังโหลด...
+      </Button>
+    );
+  }
+
   if (!isConnected && !wagmiIsConnected) {
     return (
       <ConnectButton.Custom>
@@ -83,10 +99,10 @@ export default function Web3Status() {
 
           return (
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
               onClick={openConnectModal}
-              className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/30 hover:to-blue-600/30 border-purple-500/30"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-none"
             >
               <Wallet className="mr-2 h-4 w-4" />
               เชื่อมต่อกระเป๋า
@@ -104,9 +120,13 @@ export default function Web3Status() {
         <Button
           variant="outline"
           size="sm"
-          className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/30 hover:to-blue-600/30 border-purple-500/30"
+          className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/30 hover:to-blue-600/30 border-purple-500/30 flex items-center gap-2"
         >
-          <Wallet className="mr-2 h-4 w-4" />
+          <Avatar className="h-5 w-5 mr-1">
+            <AvatarFallback className="bg-gradient-to-br from-purple-600 to-blue-600 text-white text-xs">
+              {address?.slice(2, 4).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
           <span className="hidden md:inline mr-1">
             {address?.slice(0, 6)}...{address?.slice(-4)}
           </span>
@@ -117,7 +137,10 @@ export default function Web3Status() {
         align="end"
         className="w-56 bg-black/90 backdrop-blur-lg border-purple-500/30"
       >
-        <DropdownMenuLabel>กระเป๋าเงิน</DropdownMenuLabel>
+        <DropdownMenuLabel className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+          <span>เชื่อมต่อแล้ว</span>
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="flex justify-between cursor-default">
           <span className="text-gray-400">เครือข่าย</span>
@@ -127,7 +150,7 @@ export default function Web3Status() {
           onClick={copyAddressToClipboard}
           className="cursor-pointer"
         >
-          <Check className="mr-2 h-4 w-4" />
+          <Copy className="mr-2 h-4 w-4" />
           <span>คัดลอกที่อยู่</span>
         </DropdownMenuItem>
         <DropdownMenuItem
@@ -142,7 +165,8 @@ export default function Web3Status() {
           onClick={handleDisconnect}
           className="text-red-500 cursor-pointer focus:text-red-500"
         >
-          ตัดการเชื่อมต่อ
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>ตัดการเชื่อมต่อ</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

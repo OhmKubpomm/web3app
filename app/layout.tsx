@@ -35,7 +35,9 @@ export default function RootLayout({
           crossOrigin=""
         />
       </head>
-      <body className={inter.className}>
+      <body
+        className={`${inter.className} min-h-screen bg-gradient-to-b from-gray-900 to-black text-white`}
+      >
         <Providers>{children}</Providers>
       </body>
     </html>

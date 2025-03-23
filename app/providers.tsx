@@ -16,19 +16,19 @@ const queryClient = new QueryClient();
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={config}>
-      <I18nProvider>
-        <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider
-            theme={darkTheme({
-              accentColor: "#8b5cf6", // purple-500
-              accentColorForeground: "white",
-              borderRadius: "medium",
-              fontStack: "system",
-            })}
-            modalSize="compact"
-          >
-            <Web3Provider>
-              <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider
+          theme={darkTheme({
+            accentColor: "#8b5cf6", // purple-500
+            accentColorForeground: "white",
+            borderRadius: "medium",
+            fontStack: "system",
+          })}
+          modalSize="compact"
+        >
+          <Web3Provider>
+            <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+              <I18nProvider>
                 <Toaster
                   position="top-right"
                   closeButton
@@ -41,11 +41,11 @@ export function Providers({ children }: { children: ReactNode }) {
                   }}
                 />
                 {children}
-              </ThemeProvider>
-            </Web3Provider>
-          </RainbowKitProvider>
-        </QueryClientProvider>
-      </I18nProvider>
+              </I18nProvider>
+            </ThemeProvider>
+          </Web3Provider>
+        </RainbowKitProvider>
+      </QueryClientProvider>
     </WagmiProvider>
   );
 }
