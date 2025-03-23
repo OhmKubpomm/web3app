@@ -1,29 +1,25 @@
-import { cookies } from "next/headers"
-import { redirect } from "next/navigation"
-import { loadGameData } from "@/lib/actions"
-import GameDashboard from "@/components/game-dashboard"
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import GameDashboard from "@/components/game-dashboard";
+import { loadGameData } from "@/lib/actions";
 
 export default async function DashboardPage() {
-  // ตรวจสอบว่ามีกระเป๋าที่เชื่อมต่อแล้วหรือไม่
-  const playerAddress = cookies().get("player_address")?.value
+  // ตรวจสอบว่ามีกระเป๋าที่เชื่อมต่อแล้วหรือไม่จาก cookie
+  const playerAddress = cookies().get("player_address")?.value;
 
   // ถ้าไม่มีกระเป๋าที่เชื่อมต่อ ให้ redirect ไปหน้าแรก
   if (!playerAddress) {
-    return redirect("/")
+    return redirect("/");
   }
 
-  // โหลดข้อมูลเกม
-  const { success, data, error } = await loadGameData(playerAddress)
+  // โหลดข้อมูลเกมจากฐานข้อมูล
+  const { success, data } = await loadGameData(playerAddress);
 
+  // ถ้าโหลดข้อมูลไม่สำเร็จ ให้ redirect ไปหน้าแรก
   if (!success || !data) {
-    console.error("Error loading game data:", error)
-    return redirect("/")
+    return redirect("/");
   }
 
-  // เพิ่ม wallet address เข้าไปในข้อมูลเกม
-  data.walletAddress = playerAddress
-
-  // ส่งข้อมูลเกมไปให้ component
-  return <GameDashboard initialGameData={data} />
+  // ส่งข้อมูลไปยัง GameDashboard component
+  return <GameDashboard playerAddress={playerAddress} initialGameData={data} />;
 }
-
