@@ -5,7 +5,7 @@ import { loadGameData } from "@/lib/actions";
 
 export default async function DashboardPage() {
   // ตรวจสอบว่ามีกระเป๋าที่เชื่อมต่อแล้วหรือไม่จาก cookie
-  const playerAddress = cookies().get("player_address")?.value;
+  const playerAddress = (await cookies()).get("player_address")?.value;
 
   // ถ้าไม่มีกระเป๋าที่เชื่อมต่อ ให้ redirect ไปหน้าแรก
   if (!playerAddress) {

@@ -1,0 +1,6 @@
+{
+  "enabled": true,
+  "language": "en",
+  "ignoreRegExpList": ["/[ก-๙]+/"],
+  "ignorePaths": ["node_modules/**", "dist/**"]
+}

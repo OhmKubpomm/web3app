@@ -1,9 +1,9 @@
 interface ShopItem {
-  id: number
-  name: string
-  description: string
-  price: number
-  image?: string // Optional image path
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  image?: string; // Optional image path
 }
 
 const shopItems: ShopItem[] = [
@@ -28,7 +28,7 @@ const shopItems: ShopItem[] = [
     price: 500,
     image: "premium-character.png",
   },
-]
+];
 
 const ShopSystem = () => {
   return (
@@ -50,8 +50,7 @@ const ShopSystem = () => {
         ))}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ShopSystem
-
+export default ShopSystem;

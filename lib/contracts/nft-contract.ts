@@ -1,3 +1,4 @@
+// NFT Contract ABI สำหรับใช้งานกับ Ethereum
 export const NFTContract = {
   address: process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS as string,
   abi: [

@@ -1,14 +1,14 @@
-import type React from "react"
+import type React from "react";
 
 interface InventoryItem {
-  id: string
-  name: string
-  description: string
-  image?: string // Optional image path
+  id: string;
+  name: string;
+  description: string;
+  image?: string; // Optional image path
 }
 
 interface InventorySystemProps {
-  items: InventoryItem[]
+  items: InventoryItem[];
 }
 
 const InventorySystem: React.FC<InventorySystemProps> = ({ items }) => {
@@ -19,7 +19,9 @@ const InventorySystem: React.FC<InventorySystemProps> = ({ items }) => {
         {items.map((item) => (
           <div key={item.id} className="inventory-item">
             <img
-              src={`/images/inventory/${item.image || "default-inventory-item.png"}`}
+              src={`/images/inventory/${
+                item.image || "default-inventory-item.png"
+              }`}
               alt={`Inventory item: ${item.name}`}
               className="inventory-item-image"
             />
@@ -29,8 +31,7 @@ const InventorySystem: React.FC<InventorySystemProps> = ({ items }) => {
         ))}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default InventorySystem
-
+export default InventorySystem;

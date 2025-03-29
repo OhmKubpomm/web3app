@@ -1,13 +1,13 @@
-import type React from "react"
+import type React from "react";
 
 interface Character {
-  id: number
-  name: string
-  image: string
+  id: number;
+  name: string;
+  image: string;
 }
 
 interface CharacterDisplayProps {
-  character: Character
+  character: Character;
 }
 
 const CharacterDisplay: React.FC<CharacterDisplayProps> = ({ character }) => {
@@ -20,8 +20,7 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({ character }) => {
       />
       <h2>{character.name}</h2>
     </div>
-  )
-}
+  );
+};
 
-export default CharacterDisplay
-
+export default CharacterDisplay;

@@ -1,40 +1,40 @@
-import { getSupabaseClient } from "./supabase-client"
+import { getSupabaseClient } from "./supabase-client";
 
 // สร้าง Supabase client เมื่อมีการเรียกใช้
 export const supabase = {
   get client() {
     try {
-      return getSupabaseClient()
+      return getSupabaseClient();
     } catch (error) {
-      console.error("Error creating Supabase client:", error)
-      throw new Error("Failed to create Supabase client")
+      console.error("Error creating Supabase client:", error);
+      throw new Error("Failed to create Supabase client");
     }
   },
-}
+};
 
 // ฟังก์ชันสำหรับดึงข้อมูลผู้เล่น
 export async function getPlayerData(walletAddress: string) {
   try {
     if (!walletAddress) {
-      console.error("Wallet address is required")
-      return null
+      console.error("Wallet address is required");
+      return null;
     }
 
     const { data, error } = await supabase.client
       .from("players")
       .select("*, characters(*), inventory(*), upgrades(*), quests(*)")
       .eq("wallet_address", walletAddress)
-      .single()
+      .single();
 
     if (error && error.code !== "PGRST116") {
-      console.error("Error fetching player data:", error)
-      return null
+      console.error("Error fetching player data:", error);
+      return null;
     }
 
-    return data
+    return data;
   } catch (error) {
-    console.error("Error in getPlayerData:", error)
-    return null
+    console.error("Error in getPlayerData:", error);
+    return null;
   }
 }
 
@@ -42,15 +42,15 @@ export async function getPlayerData(walletAddress: string) {
 export async function createPlayer(walletAddress: string, initialData: any) {
   try {
     if (!walletAddress) {
-      console.error("Wallet address is required")
-      return null
+      console.error("Wallet address is required");
+      return null;
     }
 
     // ตรวจสอบว่ามีผู้เล่นนี้อยู่แล้วหรือไม่
-    const existingPlayer = await getPlayerData(walletAddress)
+    const existingPlayer = await getPlayerData(walletAddress);
     if (existingPlayer) {
-      console.log("Player already exists:", existingPlayer)
-      return existingPlayer
+      console.log("Player already exists:", existingPlayer);
+      return existingPlayer;
     }
 
     // สร้างผู้เล่นใหม่
@@ -69,18 +69,18 @@ export async function createPlayer(walletAddress: string, initialData: any) {
         },
       ])
       .select()
-      .single()
+      .single();
 
     if (playerError) {
-      console.error("Error creating player:", playerError)
+      console.error("Error creating player:", playerError);
       // ในกรณีที่ไม่สามารถสร้างผู้เล่นได้ ให้ส่งค่า null กลับไป
-      return null
+      return null;
     }
 
     // ถ้าไม่มี player.id ให้ส่งค่า null กลับไป
     if (!player || !player.id) {
-      console.error("Failed to create player: No player ID returned")
-      return null
+      console.error("Failed to create player: No player ID returned");
+      return null;
     }
 
     try {
@@ -93,7 +93,7 @@ export async function createPlayer(walletAddress: string, initialData: any) {
           damage: 1,
           image: "/placeholder.svg?height=80&width=80",
         },
-      ])
+      ]);
 
       // สร้างอัพเกรดเริ่มต้น
       await supabase.client.from("upgrades").insert([
@@ -103,7 +103,7 @@ export async function createPlayer(walletAddress: string, initialData: any) {
           inventory_slots: 10,
           damage_multiplier: 1.0,
         },
-      ])
+      ]);
 
       // สร้างภารกิจเริ่มต้น
       await supabase.client.from("quests").insert([
@@ -129,17 +129,17 @@ export async function createPlayer(walletAddress: string, initialData: any) {
           completed: false,
           area_required: null,
         },
-      ])
+      ]);
     } catch (error) {
-      console.error("Error creating initial player data:", error)
+      console.error("Error creating initial player data:", error);
       // ถึงแม้จะมีข้อผิดพลาดในการสร้างข้อมูลเริ่มต้น แต่ผู้เล่นถูกสร้างแล้ว
       // จึงส่งข้อมูลผู้เล่นกลับไป
     }
 
-    return player
+    return player;
   } catch (error) {
-    console.error("Error in createPlayer:", error)
-    return null
+    console.error("Error in createPlayer:", error);
+    return null;
   }
 }
 
@@ -147,21 +147,24 @@ export async function createPlayer(walletAddress: string, initialData: any) {
 export async function updatePlayerData(playerId: number, data: any) {
   try {
     if (!playerId) {
-      console.error("Player ID is required")
-      return false
+      console.error("Player ID is required");
+      return false;
     }
 
-    const { error } = await supabase.client.from("players").update(data).eq("id", playerId)
+    const { error } = await supabase.client
+      .from("players")
+      .update(data)
+      .eq("id", playerId);
 
     if (error) {
-      console.error("Error updating player data:", error)
-      return false
+      console.error("Error updating player data:", error);
+      return false;
     }
 
-    return true
+    return true;
   } catch (error) {
-    console.error("Error in updatePlayerData:", error)
-    return false
+    console.error("Error in updatePlayerData:", error);
+    return false;
   }
 }
 
@@ -169,21 +172,24 @@ export async function updatePlayerData(playerId: number, data: any) {
 export async function updateCharacter(characterId: number, data: any) {
   try {
     if (!characterId) {
-      console.error("Character ID is required")
-      return false
+      console.error("Character ID is required");
+      return false;
     }
 
-    const { error } = await supabase.client.from("characters").update(data).eq("id", characterId)
+    const { error } = await supabase.client
+      .from("characters")
+      .update(data)
+      .eq("id", characterId);
 
     if (error) {
-      console.error("Error updating character:", error)
-      return false
+      console.error("Error updating character:", error);
+      return false;
     }
 
-    return true
+    return true;
   } catch (error) {
-    console.error("Error in updateCharacter:", error)
-    return false
+    console.error("Error in updateCharacter:", error);
+    return false;
   }
 }
 
@@ -191,21 +197,24 @@ export async function updateCharacter(characterId: number, data: any) {
 export async function updateUpgrades(upgradeId: number, data: any) {
   try {
     if (!upgradeId) {
-      console.error("Upgrade ID is required")
-      return false
+      console.error("Upgrade ID is required");
+      return false;
     }
 
-    const { error } = await supabase.client.from("upgrades").update(data).eq("id", upgradeId)
+    const { error } = await supabase.client
+      .from("upgrades")
+      .update(data)
+      .eq("id", upgradeId);
 
     if (error) {
-      console.error("Error updating upgrades:", error)
-      return false
+      console.error("Error updating upgrades:", error);
+      return false;
     }
 
-    return true
+    return true;
   } catch (error) {
-    console.error("Error in updateUpgrades:", error)
-    return false
+    console.error("Error in updateUpgrades:", error);
+    return false;
   }
 }
 
@@ -213,8 +222,8 @@ export async function updateUpgrades(upgradeId: number, data: any) {
 export async function addInventoryItem(playerId: number, item: any) {
   try {
     if (!playerId) {
-      console.error("Player ID is required")
-      return false
+      console.error("Player ID is required");
+      return false;
     }
 
     const { error } = await supabase.client.from("inventory").insert([
@@ -228,39 +237,46 @@ export async function addInventoryItem(playerId: number, item: any) {
         token_id: item.tokenId,
         minted_at: item.mintedAt ? new Date(item.mintedAt) : new Date(),
       },
-    ])
+    ]);
 
     if (error) {
-      console.error("Error adding inventory item:", error)
-      return false
+      console.error("Error adding inventory item:", error);
+      return false;
     }
 
-    return true
+    return true;
   } catch (error) {
-    console.error("Error in addInventoryItem:", error)
-    return false
+    console.error("Error in addInventoryItem:", error);
+    return false;
   }
 }
 
 // ฟังก์ชันสำหรับอัพเดตความคืบหน้าของภารกิจ
-export async function updateQuestProgress(questId: number, progress: number, completed: boolean) {
+export async function updateQuestProgress(
+  questId: number,
+  progress: number,
+  completed: boolean
+) {
   try {
     if (!questId) {
-      console.error("Quest ID is required")
-      return false
+      console.error("Quest ID is required");
+      return false;
     }
 
-    const { error } = await supabase.client.from("quests").update({ progress, completed }).eq("id", questId)
+    const { error } = await supabase.client
+      .from("quests")
+      .update({ progress, completed })
+      .eq("id", questId);
 
     if (error) {
-      console.error("Error updating quest progress:", error)
-      return false
+      console.error("Error updating quest progress:", error);
+      return false;
     }
 
-    return true
+    return true;
   } catch (error) {
-    console.error("Error in updateQuestProgress:", error)
-    return false
+    console.error("Error in updateQuestProgress:", error);
+    return false;
   }
 }
 
@@ -268,8 +284,8 @@ export async function updateQuestProgress(questId: number, progress: number, com
 export async function addBattleHistory(playerId: number, data: any) {
   try {
     if (!playerId) {
-      console.error("Player ID is required")
-      return false
+      console.error("Player ID is required");
+      return false;
     }
 
     const { error } = await supabase.client.from("battle_history").insert([
@@ -281,26 +297,30 @@ export async function addBattleHistory(playerId: number, data: any) {
         items_found: data.itemsFound || 0,
         timestamp: new Date(),
       },
-    ])
+    ]);
 
     if (error) {
-      console.error("Error adding battle history:", error)
-      return false
+      console.error("Error adding battle history:", error);
+      return false;
     }
 
-    return true
+    return true;
   } catch (error) {
-    console.error("Error in addBattleHistory:", error)
-    return false
+    console.error("Error in addBattleHistory:", error);
+    return false;
   }
 }
 
 // ฟังก์ชันสำหรับเพิ่มกิจกรรมของผู้เล่น
-export async function addPlayerActivity(playerId: number, activityType: string, description: string) {
+export async function addPlayerActivity(
+  playerId: number,
+  activityType: string,
+  description: string
+) {
   try {
     if (!playerId) {
-      console.error("Player ID is required")
-      return false
+      console.error("Player ID is required");
+      return false;
     }
 
     const { error } = await supabase.client.from("player_activities").insert([
@@ -310,17 +330,16 @@ export async function addPlayerActivity(playerId: number, activityType: string, 
         description: description,
         timestamp: new Date(),
       },
-    ])
+    ]);
 
     if (error) {
-      console.error("Error adding player activity:", error)
-      return false
+      console.error("Error adding player activity:", error);
+      return false;
     }
 
-    return true
+    return true;
   } catch (error) {
-    console.error("Error in addPlayerActivity:", error)
-    return false
+    console.error("Error in addPlayerActivity:", error);
+    return false;
   }
 }
-

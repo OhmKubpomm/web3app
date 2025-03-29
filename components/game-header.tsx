@@ -43,7 +43,7 @@ export default function GameHeader({ gameData }: GameHeaderProps) {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <Image
-            src="/placeholder.svg?height=36&width=36"
+            src="/placeholder-icon.svg"
             alt="Logo"
             width={36}
             height={36}

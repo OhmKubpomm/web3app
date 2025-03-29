@@ -1,19 +1,24 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useNetwork, useSwitchNetwork } from "wagmi"
-import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Check, ChevronDown, Globe } from "lucide-react"
-import { useI18n } from "@/lib/i18n"
+import { useState } from "react";
+import { useNetwork, useSwitchNetwork } from "wagmi";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Check, ChevronDown, Globe } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 export default function NetworkSwitcher() {
-  const { t } = useI18n()
-  const { chain } = useNetwork()
-  const { chains, switchNetwork } = useSwitchNetwork()
-  const [open, setOpen] = useState(false)
+  const { t } = useI18n();
+  const { chain } = useNetwork();
+  const { chains, switchNetwork } = useSwitchNetwork();
+  const [open, setOpen] = useState(false);
 
-  if (!chain || !switchNetwork) return null
+  if (!chain || !switchNetwork) return null;
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -32,8 +37,8 @@ export default function NetworkSwitcher() {
             key={option.id}
             className="flex cursor-pointer items-center justify-between"
             onClick={() => {
-              switchNetwork(option.id)
-              setOpen(false)
+              switchNetwork(option.id);
+              setOpen(false);
             }}
           >
             <span>{option.name}</span>
@@ -42,6 +47,5 @@ export default function NetworkSwitcher() {
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
-

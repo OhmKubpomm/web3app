@@ -1,45 +1,48 @@
+import "@rainbow-me/rainbowkit/styles.css";
+
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { http } from "wagmi";
-import { mainnet, sepolia, base, optimism, arbitrum, zora } from "wagmi/chains";
+import {
+  mainnet,
+  sepolia,
+  polygon,
+  polygonMumbai,
+  base,
+  baseSepolia,
+} from "wagmi/chains";
+import { QueryClient } from "@tanstack/react-query";
 
-// ตรวจสอบว่ามี Project ID หรือไม่
+// ตรวจสอบว่ามีค่า environment variables หรือไม่
+const alchemyApiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || "";
 const walletConnectProjectId =
   process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || "";
 
-// ตรวจสอบว่ามี Alchemy API Key หรือไม่
-const alchemyApiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || "";
-
-// กำหนดค่า chains ที่รองรับ
-export const chains = [mainnet, sepolia, base, optimism, arbitrum, zora];
-
-// สร้าง config สำหรับ RainbowKit และ wagmi
+// สร้าง config สำหรับ RainbowKit และ Wagmi
 export const config = getDefaultConfig({
-  appName: "Web3 Adventure Game",
+  appName: "Adventure Clicker",
   projectId: walletConnectProjectId,
-  chains,
+  ssr: true, // เปิดใช้งาน SSR
+  chains: [mainnet, sepolia, polygon, polygonMumbai, base, baseSepolia],
   transports: {
-    // ใช้ http transport แทน providers แบบเดิม
     [mainnet.id]: http(),
-    [sepolia.id]: http(),
+    [sepolia.id]: http(`https://eth-sepolia.g.alchemy.com/v2/${alchemyApiKey}`),
+    [polygon.id]: http(),
+    [polygonMumbai.id]: http(
+      `https://polygon-mumbai.g.alchemy.com/v2/${alchemyApiKey}`
+    ),
     [base.id]: http(),
-    [optimism.id]: http(),
-    [arbitrum.id]: http(),
-    [zora.id]: http(),
+    [baseSepolia.id]: http(),
   },
-  // แก้ไขปัญหา chrome.runtime.sendMessage error
-  walletConnectParameters: {
-    projectId: walletConnectProjectId,
-    showQrModal: true,
-    qrModalOptions: {
-      themeMode: "dark",
-      explorerRecommendedWalletIds: [],
-      enableExplorer: false,
-    },
-    metadata: {
-      name: "Adventure Clicker",
-      description: "Web3 Clicker Game",
-      url: "https://adventure-clicker.vercel.app",
-      icons: ["/images/ui/game-logo.png"],
+});
+
+// สร้าง QueryClient สำหรับ React Query
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry(failureCount, error) {
+        if (error) return false;
+        return failureCount < 3;
+      },
     },
   },
 });

@@ -1,40 +1,53 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { BarChart, ChartContainer, ChartBars, ChartBar } from "@/components/ui/chart"
-import { Activity, Sword, Coins, Clock, Trophy } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  BarChart,
+  ChartContainer,
+  ChartBars,
+  ChartBar,
+} from "@/components/ui/chart";
+import { Activity, Sword, Coins, Clock, Trophy } from "lucide-react";
 
 interface StatsPanelProps {
-  gameData: any
+  gameData: any;
   battleStats?: {
-    monstersDefeated: number
-    coinsEarned: number
-    itemsFound: number
-  }
+    monstersDefeated: number;
+    coinsEarned: number;
+    itemsFound: number;
+  };
 }
 
 export default function StatsPanel({ gameData, battleStats }: StatsPanelProps) {
   // คำนวณเวลาเล่นเกม (จำลอง)
   const calculatePlayTime = () => {
-    const now = new Date()
-    const lastSaved = gameData.lastSaved ? new Date(gameData.lastSaved) : now
-    const diffInMinutes = Math.floor((now.getTime() - lastSaved.getTime()) / (1000 * 60))
+    const now = new Date();
+    const lastSaved = gameData.lastSaved ? new Date(gameData.lastSaved) : now;
+    const diffInMinutes = Math.floor(
+      (now.getTime() - lastSaved.getTime()) / (1000 * 60)
+    );
 
     if (diffInMinutes < 60) {
-      return `${diffInMinutes} นาที`
+      return `${diffInMinutes} นาที`;
     } else if (diffInMinutes < 60 * 24) {
-      return `${Math.floor(diffInMinutes / 60)} ชั่วโมง ${diffInMinutes % 60} นาที`
+      return `${Math.floor(diffInMinutes / 60)} ชั่วโมง ${
+        diffInMinutes % 60
+      } นาที`;
     } else {
-      return `${Math.floor(diffInMinutes / (60 * 24))} วัน ${Math.floor((diffInMinutes % (60 * 24)) / 60)} ชั่วโมง`
+      return `${Math.floor(diffInMinutes / (60 * 24))} วัน ${Math.floor(
+        (diffInMinutes % (60 * 24)) / 60
+      )} ชั่วโมง`;
     }
-  }
+  };
 
   // ข้อมูลสถิติ
   const stats = [
     {
       name: "พลังโจมตี",
-      value: (gameData.damage * (gameData.upgrades?.damageMultiplier || 1)).toFixed(1),
+      value: (
+        gameData.damage * (gameData.upgrades?.damageMultiplier || 1)
+      ).toFixed(1),
       color: "bg-red-500",
       icon: <Sword className="h-4 w-4 text-red-400" />,
     },
@@ -56,7 +69,7 @@ export default function StatsPanel({ gameData, battleStats }: StatsPanelProps) {
       color: "bg-purple-500",
       icon: <Clock className="h-4 w-4 text-purple-400" />,
     },
-  ]
+  ];
 
   // ข้อมูลสถิติการต่อสู้ในเซสชันปัจจุบัน
   const sessionStats = [
@@ -75,7 +88,7 @@ export default function StatsPanel({ gameData, battleStats }: StatsPanelProps) {
       value: battleStats?.itemsFound || 0,
       color: "bg-purple-500",
     },
-  ]
+  ];
 
   return (
     <Card className="border-purple-500/50 bg-black/40 backdrop-blur-sm">
@@ -110,7 +123,10 @@ export default function StatsPanel({ gameData, battleStats }: StatsPanelProps) {
               <div key={index}>
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs text-gray-400">{stat.name}</span>
-                  <Badge variant="outline" className="bg-black/30 text-gray-300 border-gray-700">
+                  <Badge
+                    variant="outline"
+                    className="bg-black/30 text-gray-300 border-gray-700"
+                  >
                     {stat.value}
                   </Badge>
                 </div>
@@ -118,7 +134,12 @@ export default function StatsPanel({ gameData, battleStats }: StatsPanelProps) {
                   <div
                     className={`h-full ${stat.color} rounded-full`}
                     style={{
-                      width: `${Math.min(100, (stat.value / (index === 0 ? 100 : index === 1 ? 1000 : 10)) * 100)}%`,
+                      width: `${Math.min(
+                        100,
+                        (stat.value /
+                          (index === 0 ? 100 : index === 1 ? 1000 : 10)) *
+                          100
+                      )}%`,
                     }}
                   ></div>
                 </div>
@@ -133,7 +154,12 @@ export default function StatsPanel({ gameData, battleStats }: StatsPanelProps) {
           <ChartContainer className="h-20">
             <BarChart
               data={[
-                { name: "พลังโจมตี", value: gameData.damage * (gameData.upgrades?.damageMultiplier || 1) },
+                {
+                  name: "พลังโจมตี",
+                  value:
+                    gameData.damage *
+                    (gameData.upgrades?.damageMultiplier || 1),
+                },
                 { name: "ตัวละคร", value: gameData.characters.length * 10 },
                 { name: "ไอเทม", value: gameData.inventory.length * 5 },
                 {
@@ -155,10 +181,10 @@ export default function StatsPanel({ gameData, battleStats }: StatsPanelProps) {
                         i === 0
                           ? "fill-red-500"
                           : i === 1
-                            ? "fill-blue-500"
-                            : i === 2
-                              ? "fill-purple-500"
-                              : "fill-yellow-500"
+                          ? "fill-blue-500"
+                          : i === 2
+                          ? "fill-purple-500"
+                          : "fill-yellow-500"
                       }
                     />
                   ))
@@ -169,6 +195,5 @@ export default function StatsPanel({ gameData, battleStats }: StatsPanelProps) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
-

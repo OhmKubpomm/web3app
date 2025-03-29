@@ -1,19 +1,19 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { X, Sparkles, Clock } from "lucide-react"
-import Image from "next/image"
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { X, Sparkles, Clock } from "lucide-react";
+import Image from "next/image";
 
 interface EventBannerProps {
-  onEventClick: () => void
+  onEventClick: () => void;
 }
 
 export default function EventBanner({ onEventClick }: EventBannerProps) {
-  const [isVisible, setIsVisible] = useState(false)
-  const [event, setEvent] = useState<any>(null)
+  const [isVisible, setIsVisible] = useState(false);
+  const [event, setEvent] = useState<any>(null);
 
   // สุ่มเหตุการณ์พิเศษ
   useEffect(() => {
@@ -21,7 +21,8 @@ export default function EventBanner({ onEventClick }: EventBannerProps) {
       {
         id: 1,
         title: "เทศกาลล่ามังกร",
-        description: "มังกรปรากฏตัวในทุกพื้นที่! รับเหรียญและไอเทมเพิ่มขึ้น 2 เท่า",
+        description:
+          "มังกรปรากฏตัวในทุกพื้นที่! รับเหรียญและไอเทมเพิ่มขึ้น 2 เท่า",
         image: "/placeholder.svg?height=100&width=200",
         duration: "3 วัน",
         color: "from-red-600 to-orange-600",
@@ -42,21 +43,21 @@ export default function EventBanner({ onEventClick }: EventBannerProps) {
         duration: "5 วัน",
         color: "from-green-600 to-teal-600",
       },
-    ]
+    ];
 
     // สุ่มเลือกเหตุการณ์
-    const randomEvent = events[Math.floor(Math.random() * events.length)]
-    setEvent(randomEvent)
+    const randomEvent = events[Math.floor(Math.random() * events.length)];
+    setEvent(randomEvent);
 
     // แสดงเหตุการณ์หลังจากโหลดหน้าเว็บ 2 วินาที
     const timer = setTimeout(() => {
-      setIsVisible(true)
-    }, 2000)
+      setIsVisible(true);
+    }, 2000);
 
-    return () => clearTimeout(timer)
-  }, [])
+    return () => clearTimeout(timer);
+  }, []);
 
-  if (!event) return null
+  if (!event) return null;
 
   return (
     <AnimatePresence>
@@ -67,7 +68,9 @@ export default function EventBanner({ onEventClick }: EventBannerProps) {
           exit={{ opacity: 0, y: 50 }}
           className="fixed bottom-4 left-4 right-4 z-50 max-w-md mx-auto"
         >
-          <Card className={`bg-gradient-to-r ${event.color} text-white overflow-hidden shadow-lg border-0`}>
+          <Card
+            className={`bg-gradient-to-r ${event.color} text-white overflow-hidden shadow-lg border-0`}
+          >
             <div className="relative">
               <Button
                 variant="ghost"
@@ -80,7 +83,12 @@ export default function EventBanner({ onEventClick }: EventBannerProps) {
 
               <div className="flex items-center p-4">
                 <div className="relative w-16 h-16 mr-4 rounded-lg overflow-hidden">
-                  <Image src={event.image || "/placeholder.svg"} alt={event.title} fill className="object-cover" />
+                  <Image
+                    src={event.image || "/placeholder.svg"}
+                    alt={event.title}
+                    fill
+                    className="object-cover"
+                  />
                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                     <Sparkles className="h-8 w-8 text-yellow-300" />
                   </div>
@@ -101,8 +109,8 @@ export default function EventBanner({ onEventClick }: EventBannerProps) {
                 <Button
                   className="w-full bg-white/20 hover:bg-white/30 text-white border-white/30"
                   onClick={() => {
-                    onEventClick()
-                    setIsVisible(false)
+                    onEventClick();
+                    setIsVisible(false);
                   }}
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
@@ -114,6 +122,5 @@ export default function EventBanner({ onEventClick }: EventBannerProps) {
         </motion.div>
       )}
     </AnimatePresence>
-  )
+  );
 }
-

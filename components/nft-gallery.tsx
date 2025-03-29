@@ -1,67 +1,90 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useWeb3 } from "@/lib/web3-client"
-import { toast } from "sonner"
-import { useI18n } from "@/lib/i18n"
-import { ImageIcon, Search, X, ExternalLink, Sparkles, RefreshCw, Filter } from "lucide-react"
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useWeb3 } from "@/lib/web3-client";
+import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
+import {
+  ImageIcon,
+  Search,
+  X,
+  ExternalLink,
+  Sparkles,
+  RefreshCw,
+  Filter,
+} from "lucide-react";
 
 interface NFT {
-  id: string
-  name: string
-  description: string
-  image: string
+  id: string;
+  name: string;
+  description: string;
+  image: string;
   attributes: {
-    trait_type: string
-    value: string
-  }[]
-  type: string
-  rarity: string
+    trait_type: string;
+    value: string;
+  }[];
+  type: string;
+  rarity: string;
 }
 
 export default function NFTGallery({ gameData }: { gameData: any }) {
-  const { address, chainId } = useWeb3()
-  const { t } = useI18n()
-  const [nfts, setNfts] = useState<NFT[]>([])
-  const [selectedNft, setSelectedNft] = useState<NFT | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [activeTab, setActiveTab] = useState("all")
-  const [activeFilter, setActiveFilter] = useState<string | null>(null)
+  const { address, chainId } = useWeb3();
+  const { t } = useI18n();
+  const [nfts, setNfts] = useState<NFT[]>([]);
+  const [selectedNft, setSelectedNft] = useState<NFT | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   // สร้าง NFT จำลองจากคลังไอเทมในเกม
   const generateNFTs = () => {
-    if (!gameData?.inventory) return []
+    if (!gameData?.inventory) return [];
 
     return gameData.inventory.map((item: any, index: number) => {
       // สร้างคุณสมบัติแบบสุ่มตามประเภทและความหายากของไอเทม
-      const attributes = []
+      const attributes = [];
 
       if (item.type === "weapon") {
         attributes.push(
-          { trait_type: "ความเสียหาย", value: `${Math.floor(Math.random() * 50) + 10}` },
-          { trait_type: "ความเร็ว", value: `${Math.floor(Math.random() * 10) + 1}` },
-        )
+          {
+            trait_type: "ความเสียหาย",
+            value: `${Math.floor(Math.random() * 50) + 10}`,
+          },
+          {
+            trait_type: "ความเร็ว",
+            value: `${Math.floor(Math.random() * 10) + 1}`,
+          }
+        );
       } else if (item.type === "armor") {
         attributes.push(
-          { trait_type: "การป้องกัน", value: `${Math.floor(Math.random() * 40) + 5}` },
-          { trait_type: "น้ำหนัก", value: `${Math.floor(Math.random() * 10) + 1}` },
-        )
+          {
+            trait_type: "การป้องกัน",
+            value: `${Math.floor(Math.random() * 40) + 5}`,
+          },
+          {
+            trait_type: "น้ำหนัก",
+            value: `${Math.floor(Math.random() * 10) + 1}`,
+          }
+        );
       } else if (item.type === "accessory") {
         attributes.push(
           { trait_type: "โชค", value: `${Math.floor(Math.random() * 20) + 1}` },
-          { trait_type: "เวทมนตร์", value: `${Math.floor(Math.random() * 30) + 5}` },
-        )
+          {
+            trait_type: "เวทมนตร์",
+            value: `${Math.floor(Math.random() * 30) + 5}`,
+          }
+        );
       }
 
       // เพิ่มคุณสมบัติความหายาก
-      attributes.push({ trait_type: "ความหายาก", value: item.rarity })
+      attributes.push({ trait_type: "ความหายาก", value: item.rarity });
 
       return {
         id: item.tokenId || `nft-${index}`,
@@ -71,23 +94,23 @@ export default function NFTGallery({ gameData }: { gameData: any }) {
         attributes,
         type: item.type,
         rarity: item.rarity,
-      }
-    })
-  }
+      };
+    });
+  };
 
   // โหลด NFT เมื่อโหลดและเมื่อข้อมูลเกมเปลี่ยนแปลง
   useEffect(() => {
     if (gameData) {
-      setIsLoading(true)
+      setIsLoading(true);
 
       // จำลองการเรียก API
       setTimeout(() => {
-        const generatedNfts = generateNFTs()
-        setNfts(generatedNfts)
-        setIsLoading(false)
-      }, 1000)
+        const generatedNfts = generateNFTs();
+        setNfts(generatedNfts);
+        setIsLoading(false);
+      }, 1000);
     }
-  }, [gameData])
+  }, [gameData]);
 
   // กรอง NFT ตามคำค้นหา, แท็บ และตัวกรอง
   const filteredNfts = nfts.filter((nft) => {
@@ -96,78 +119,79 @@ export default function NFTGallery({ gameData }: { gameData: any }) {
       nft.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       nft.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       nft.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      nft.rarity.toLowerCase().includes(searchQuery.toLowerCase())
+      nft.rarity.toLowerCase().includes(searchQuery.toLowerCase());
 
     // ตัวกรองแท็บ
     const matchesTab =
       activeTab === "all" ||
       (activeTab === "weapons" && nft.type === "weapon") ||
       (activeTab === "armor" && nft.type === "armor") ||
-      (activeTab === "accessories" && nft.type === "accessory")
+      (activeTab === "accessories" && nft.type === "accessory");
 
     // ตัวกรองความหายาก
-    const matchesFilter = !activeFilter || nft.rarity.toLowerCase() === activeFilter.toLowerCase()
+    const matchesFilter =
+      !activeFilter || nft.rarity.toLowerCase() === activeFilter.toLowerCase();
 
-    return matchesSearch && matchesTab && matchesFilter
-  })
+    return matchesSearch && matchesTab && matchesFilter;
+  });
 
   // รับสีความหายาก
   const getRarityColor = (rarity: string) => {
     switch (rarity.toLowerCase()) {
       case "common":
-        return "bg-gray-500"
+        return "bg-gray-500";
       case "uncommon":
-        return "bg-green-500"
+        return "bg-green-500";
       case "rare":
-        return "bg-blue-500"
+        return "bg-blue-500";
       case "epic":
-        return "bg-purple-500"
+        return "bg-purple-500";
       case "legendary":
-        return "bg-orange-500"
+        return "bg-orange-500";
       default:
-        return "bg-gray-500"
+        return "bg-gray-500";
     }
-  }
+  };
 
   // รับ URL ของ Explorer ตาม Chain ID
   const getExplorerUrl = (chainId: number | null) => {
-    if (!chainId) return "https://etherscan.io"
+    if (!chainId) return "https://etherscan.io";
 
     const explorers: Record<number, string> = {
       1: "https://etherscan.io",
       137: "https://polygonscan.com",
       80001: "https://mumbai.polygonscan.com",
       11155111: "https://sepolia.etherscan.io",
-    }
+    };
 
-    return explorers[chainId] || "https://etherscan.io"
-  }
+    return explorers[chainId] || "https://etherscan.io";
+  };
 
   // จัดการการเลือก NFT
   const handleSelectNft = (nft: NFT) => {
-    setSelectedNft(nft)
-  }
+    setSelectedNft(nft);
+  };
 
   // จัดการการปิดรายละเอียด NFT
   const handleCloseDetails = () => {
-    setSelectedNft(null)
-  }
+    setSelectedNft(null);
+  };
 
   // จัดการการรีเฟรช
   const handleRefresh = () => {
-    setIsLoading(true)
+    setIsLoading(true);
 
     // จำลองการเรียก API
     setTimeout(() => {
-      const generatedNfts = generateNFTs()
-      setNfts(generatedNfts)
-      setIsLoading(false)
+      const generatedNfts = generateNFTs();
+      setNfts(generatedNfts);
+      setIsLoading(false);
 
       toast.success("รีเฟรชแล้ว", {
         description: "แกลเลอรี NFT ได้รับการรีเฟรชแล้ว",
-      })
-    }, 1000)
-  }
+      });
+    }, 1000);
+  };
 
   return (
     <Card className="border-purple-500/30 bg-black/40 backdrop-blur-sm">
@@ -184,7 +208,9 @@ export default function NFTGallery({ gameData }: { gameData: any }) {
             onClick={handleRefresh}
             disabled={isLoading}
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+            />
             <span className="sr-only">รีเฟรช</span>
           </Button>
         </div>
@@ -205,8 +231,13 @@ export default function NFTGallery({ gameData }: { gameData: any }) {
                 <div>
                   <h3 className="text-lg font-bold">{selectedNft.name}</h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge className={`${getRarityColor(selectedNft.rarity)}`}>{selectedNft.rarity}</Badge>
-                    <Badge variant="outline" className="bg-black/30 text-gray-300 border-gray-700">
+                    <Badge className={`${getRarityColor(selectedNft.rarity)}`}>
+                      {selectedNft.rarity}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="bg-black/30 text-gray-300 border-gray-700"
+                    >
                       {selectedNft.type}
                     </Badge>
                   </div>
@@ -223,22 +254,30 @@ export default function NFTGallery({ gameData }: { gameData: any }) {
                   className="object-cover w-full h-full"
                 />
                 <div className="absolute top-2 right-2">
-                  <Badge className={`${getRarityColor(selectedNft.rarity)}`}>{selectedNft.rarity}</Badge>
+                  <Badge className={`${getRarityColor(selectedNft.rarity)}`}>
+                    {selectedNft.rarity}
+                  </Badge>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-400 mb-1">คำอธิบาย</h4>
+                  <h4 className="text-sm font-medium text-gray-400 mb-1">
+                    คำอธิบาย
+                  </h4>
                   <p className="text-sm">{selectedNft.description}</p>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-medium text-gray-400 mb-2">คุณสมบัติ</h4>
+                  <h4 className="text-sm font-medium text-gray-400 mb-2">
+                    คุณสมบัติ
+                  </h4>
                   <div className="grid grid-cols-2 gap-2">
                     {selectedNft.attributes.map((attr, index) => (
                       <div key={index} className="bg-black/30 p-2 rounded-md">
-                        <div className="text-xs text-gray-400">{attr.trait_type}</div>
+                        <div className="text-xs text-gray-400">
+                          {attr.trait_type}
+                        </div>
                         <div className="font-medium">{attr.value}</div>
                       </div>
                     ))}
@@ -247,11 +286,17 @@ export default function NFTGallery({ gameData }: { gameData: any }) {
 
                 {selectedNft.id && selectedNft.id.startsWith("0x") && (
                   <div>
-                    <h4 className="text-sm font-medium text-gray-400 mb-1">Token ID</h4>
+                    <h4 className="text-sm font-medium text-gray-400 mb-1">
+                      Token ID
+                    </h4>
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-mono bg-black/30 p-2 rounded overflow-x-auto">{selectedNft.id}</p>
+                      <p className="text-sm font-mono bg-black/30 p-2 rounded overflow-x-auto">
+                        {selectedNft.id}
+                      </p>
                       <a
-                        href={`${getExplorerUrl(chainId)}/token/${selectedNft.id}`}
+                        href={`${getExplorerUrl(chainId)}/token/${
+                          selectedNft.id
+                        }`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-purple-400 hover:text-purple-300 ml-2"
@@ -289,7 +334,11 @@ export default function NFTGallery({ gameData }: { gameData: any }) {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2 justify-between">
-                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
+                  <Tabs
+                    value={activeTab}
+                    onValueChange={setActiveTab}
+                    className="w-full sm:w-auto"
+                  >
                     <TabsList className="grid grid-cols-4 bg-black/60 rounded-lg p-1">
                       <TabsTrigger
                         value="all"
@@ -321,21 +370,29 @@ export default function NFTGallery({ gameData }: { gameData: any }) {
                   <div className="flex items-center gap-2">
                     <Filter className="h-4 w-4 text-gray-400" />
                     <div className="flex gap-1">
-                      {["common", "uncommon", "rare", "epic", "legendary"].map((rarity) => (
-                        <Button
-                          key={rarity}
-                          variant="outline"
-                          size="sm"
-                          className={`h-7 px-2 text-xs ${
-                            activeFilter === rarity
-                              ? `${getRarityColor(rarity)} text-white border-transparent`
-                              : "bg-black/30 border-gray-700"
-                          }`}
-                          onClick={() => setActiveFilter(activeFilter === rarity ? null : rarity)}
-                        >
-                          {rarity.charAt(0).toUpperCase() + rarity.slice(1)}
-                        </Button>
-                      ))}
+                      {["common", "uncommon", "rare", "epic", "legendary"].map(
+                        (rarity) => (
+                          <Button
+                            key={rarity}
+                            variant="outline"
+                            size="sm"
+                            className={`h-7 px-2 text-xs ${
+                              activeFilter === rarity
+                                ? `${getRarityColor(
+                                    rarity
+                                  )} text-white border-transparent`
+                                : "bg-black/30 border-gray-700"
+                            }`}
+                            onClick={() =>
+                              setActiveFilter(
+                                activeFilter === rarity ? null : rarity
+                              )
+                            }
+                          >
+                            {rarity.charAt(0).toUpperCase() + rarity.slice(1)}
+                          </Button>
+                        )
+                      )}
                     </div>
                   </div>
                 </div>
@@ -344,7 +401,10 @@ export default function NFTGallery({ gameData }: { gameData: any }) {
               {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="bg-black/30 rounded-lg p-4 h-64 animate-pulse">
+                    <div
+                      key={i}
+                      className="bg-black/30 rounded-lg p-4 h-64 animate-pulse"
+                    >
                       <div className="w-full h-40 bg-gray-700/30 rounded-md mb-4"></div>
                       <div className="h-4 bg-gray-700/30 rounded w-3/4 mb-2"></div>
                       <div className="h-3 bg-gray-700/30 rounded w-1/2"></div>
@@ -379,17 +439,28 @@ export default function NFTGallery({ gameData }: { gameData: any }) {
                             className="object-cover w-full h-full"
                           />
                           <div className="absolute top-2 right-2">
-                            <Badge className={`${getRarityColor(nft.rarity)}`}>{nft.rarity}</Badge>
+                            <Badge className={`${getRarityColor(nft.rarity)}`}>
+                              {nft.rarity}
+                            </Badge>
                           </div>
                         </div>
                         <div className="p-4">
                           <h3 className="font-bold mb-1">{nft.name}</h3>
-                          <p className="text-xs text-gray-400 line-clamp-2">{nft.description}</p>
+                          <p className="text-xs text-gray-400 line-clamp-2">
+                            {nft.description}
+                          </p>
                           <div className="flex justify-between items-center mt-2">
-                            <Badge variant="outline" className="bg-black/30 text-gray-300 border-gray-700">
+                            <Badge
+                              variant="outline"
+                              className="bg-black/30 text-gray-300 border-gray-700"
+                            >
                               {nft.type}
                             </Badge>
-                            {nft.id.startsWith("0x") && <span className="text-xs text-purple-400">บนบล็อกเชน</span>}
+                            {nft.id.startsWith("0x") && (
+                              <span className="text-xs text-purple-400">
+                                บนบล็อกเชน
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -402,6 +473,5 @@ export default function NFTGallery({ gameData }: { gameData: any }) {
         </AnimatePresence>
       </CardContent>
     </Card>
-  )
+  );
 }
-

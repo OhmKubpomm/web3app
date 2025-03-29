@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { motion } from "framer-motion"
-import { Sword, Shield, Sparkles } from "lucide-react"
+import { motion } from "framer-motion";
+import { Sword, Shield, Sparkles } from "lucide-react";
 
 export default function LoadingScreen() {
   return (
@@ -38,6 +38,5 @@ export default function LoadingScreen() {
         <p className="text-gray-300">กำลังเตรียมการผจญภัยของคุณ</p>
       </motion.div>
     </div>
-  )
+  );
 }
-

@@ -1,23 +1,30 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
 interface Area {
-  id: string
-  name: string
-  image?: string
+  id: string;
+  name: string;
+  image?: string;
 }
 
 interface AreaSelectionProps {
-  areas: Area[]
-  onAreaSelect: (areaId: string) => void
+  areas: Area[];
+  onAreaSelect: (areaId: string) => void;
 }
 
-const AreaSelection: React.FC<AreaSelectionProps> = ({ areas, onAreaSelect }) => {
+const AreaSelection: React.FC<AreaSelectionProps> = ({
+  areas,
+  onAreaSelect,
+}) => {
   return (
     <div className="area-selection">
       {areas.map((area) => (
-        <div key={area.id} className="area-item" onClick={() => onAreaSelect(area.id)}>
+        <div
+          key={area.id}
+          className="area-item"
+          onClick={() => onAreaSelect(area.id)}
+        >
           <img
             src={`/images/areas/${area.image || "default-area.png"}`}
             alt={`Area: ${area.name}`}
@@ -27,8 +34,7 @@ const AreaSelection: React.FC<AreaSelectionProps> = ({ areas, onAreaSelect }) =>
         </div>
       ))}
     </div>
-  )
-}
+  );
+};
 
-export default AreaSelection
-
+export default AreaSelection;

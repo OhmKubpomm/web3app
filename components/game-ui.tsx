@@ -1,4 +1,4 @@
-\
+
 Let's create the necessary image directories and add a public/next.svg file to fix the CORS issue:
 
 ```tsx file="public/next.svg"

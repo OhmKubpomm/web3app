@@ -1,61 +1,162 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Sword, Shield, ArrowUp, Coins } from "lucide-react"
-import { toast } from "sonner"
-import { upgradeCharacter } from "@/lib/actions"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Sword, Shield, ArrowUp, Coins, Star } from "lucide-react";
+import { toast } from "sonner";
+import { upgradeCharacter } from "@/lib/actions";
+import { useWeb3 } from "@/lib/web3-client";
+import { useAccount } from "wagmi";
+import { useI18n } from "@/lib/i18n";
 
 interface CharacterCardProps {
-  character: any
-  gameData: any
-  onUpgrade: (updatedData: any) => void
-  isProcessing: boolean
+  character: any;
+  gameData: any;
+  onUpgrade: (updatedData: any) => void;
+  isProcessing: boolean;
 }
 
-export default function CharacterCard({ character, gameData, onUpgrade, isProcessing }: CharacterCardProps) {
-  const [isHovered, setIsHovered] = useState(false)
-  const [isUpgrading, setIsUpgrading] = useState(false)
+export default function CharacterCard({
+  character,
+  gameData,
+  onUpgrade,
+  isProcessing,
+}: CharacterCardProps) {
+  const { locale } = useI18n();
+  const { address, upgradeCharacter: upgradeCharacterContract } = useWeb3();
+  const { address: wagmiAddress } = useAccount();
+  const [isHovered, setIsHovered] = useState(false);
+  const [isUpgrading, setIsUpgrading] = useState(false);
+  const [xpPercent, setXpPercent] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
   // คำนวณค่าอัพเกรด
-  const upgradeCost = character.level * 25
+  const upgradeCost = character.level * 25;
+
+  // คำนวณค่า XP เป็นเปอร์เซ็นต์
+  useEffect(() => {
+    setMounted(true);
+    if (character && typeof character.experience !== "undefined") {
+      const nextLevelXp = character.level * 100;
+      const percent = (character.experience / nextLevelXp) * 100;
+      setXpPercent(Math.min(percent, 100));
+    }
+  }, [character]);
 
   // ฟังก์ชันอัพเกรดตัวละคร
   const handleUpgrade = async () => {
-    if (isProcessing || isUpgrading) return
+    if (isProcessing || isUpgrading) return;
     if (gameData.coins < upgradeCost) {
-      toast.error("เหรียญไม่เพียงพอ", {
-        description: `ต้องการ ${upgradeCost} เหรียญ`,
-      })
-      return
+      toast.error(locale === "th" ? "เหรียญไม่เพียงพอ" : "Not enough coins", {
+        description:
+          locale === "th"
+            ? `ต้องการ ${upgradeCost} เหรียญ`
+            : `You need ${upgradeCost} coins`,
+      });
+      return;
     }
 
-    setIsUpgrading(true)
+    const actualAddress = address || wagmiAddress;
+    if (!actualAddress) {
+      toast.error(
+        locale === "th"
+          ? "กรุณาเชื่อมต่อกระเป๋าก่อน"
+          : "Please connect your wallet first",
+        {
+          position: "top-right",
+        }
+      );
+      return;
+    }
+
+    setIsUpgrading(true);
 
     try {
-      const result = await upgradeCharacter(gameData.walletAddress, character.id, upgradeCost)
+      // เรียกใช้ฟังก์ชัน upgradeCharacter จาก contract
+      const contractResult = await upgradeCharacterContract(character.id);
 
-      if (result.success) {
-        toast.success("อัพเกรดสำเร็จ", {
-          description: `${character.name} เลเวล ${character.level} → ${character.level + 1}`,
-        })
-        onUpgrade(result.data)
+      if (contractResult) {
+        // อัพเดตข้อมูลในฐานข้อมูล
+        const result = await upgradeCharacter(
+          actualAddress,
+          character.id,
+          upgradeCost
+        );
+
+        if (result.success) {
+          toast.success(
+            locale === "th" ? "อัพเกรดสำเร็จ" : "Upgrade successful",
+            {
+              description:
+                locale === "th"
+                  ? `${character.name} เลเวล ${character.level} → ${
+                      character.level + 1
+                    }`
+                  : `${character.name} Level ${character.level} → ${
+                      character.level + 1
+                    }`,
+            }
+          );
+          onUpgrade(result.data);
+        } else {
+          toast.error(locale === "th" ? "อัพเกรดล้มเหลว" : "Upgrade failed", {
+            description:
+              result.error ||
+              (locale === "th"
+                ? "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ"
+                : "Unknown error occurred"),
+          });
+        }
       } else {
-        toast.error("อัพเกรดล้มเหลว", {
-          description: result.error || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ",
-        })
+        // ถ้าไม่มีผลลัพธ์จาก contract ให้ใช้ API ปกติ
+        const result = await upgradeCharacter(
+          actualAddress,
+          character.id,
+          upgradeCost
+        );
+
+        if (result.success) {
+          toast.success(
+            locale === "th" ? "อัพเกรดสำเร็จ" : "Upgrade successful",
+            {
+              description:
+                locale === "th"
+                  ? `${character.name} เลเวล ${character.level} → ${
+                      character.level + 1
+                    }`
+                  : `${character.name} Level ${character.level} → ${
+                      character.level + 1
+                    }`,
+            }
+          );
+          onUpgrade(result.data);
+        } else {
+          toast.error(locale === "th" ? "อัพเกรดล้มเหลว" : "Upgrade failed", {
+            description:
+              result.error ||
+              (locale === "th"
+                ? "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ"
+                : "Unknown error occurred"),
+          });
+        }
       }
     } catch (error) {
-      console.error("Error upgrading character:", error)
-      toast.error("อัพเกรดล้มเหลว", {
-        description: "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ",
-      })
+      console.error("Error upgrading character:", error);
+      toast.error(locale === "th" ? "อัพเกรดล้มเหลว" : "Upgrade failed", {
+        description:
+          locale === "th"
+            ? "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ"
+            : "Unknown error occurred",
+      });
     } finally {
-      setIsUpgrading(false)
+      setIsUpgrading(false);
     }
-  }
+  };
+
+  if (!mounted) return null;
 
   return (
     <motion.div
@@ -83,8 +184,8 @@ export default function CharacterCard({ character, gameData, onUpgrade, isProces
                     character.level > 5
                       ? "bg-yellow-600/30"
                       : character.level > 3
-                        ? "bg-blue-600/30"
-                        : "bg-purple-600/30"
+                      ? "bg-blue-600/30"
+                      : "bg-purple-600/30"
                   }`}
                 />
 
@@ -94,8 +195,8 @@ export default function CharacterCard({ character, gameData, onUpgrade, isProces
                     character.level > 5
                       ? "border-yellow-500/50 bg-yellow-900/30"
                       : character.level > 3
-                        ? "border-blue-500/50 bg-blue-900/30"
-                        : "border-purple-500/50 bg-purple-900/30"
+                      ? "border-blue-500/50 bg-blue-900/30"
+                      : "border-purple-500/50 bg-purple-900/30"
                   }`}
                 >
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -104,8 +205,8 @@ export default function CharacterCard({ character, gameData, onUpgrade, isProces
                         character.level > 5
                           ? "text-yellow-400"
                           : character.level > 3
-                            ? "text-blue-400"
-                            : "text-purple-400"
+                          ? "text-blue-400"
+                          : "text-purple-400"
                       }`}
                     />
                   </div>
@@ -139,7 +240,11 @@ export default function CharacterCard({ character, gameData, onUpgrade, isProces
                           delay: i * 0.1,
                         }}
                         className={`absolute w-2 h-2 rounded-full ${
-                          character.level > 5 ? "bg-yellow-400" : character.level > 3 ? "bg-blue-400" : "bg-purple-400"
+                          character.level > 5
+                            ? "bg-yellow-400"
+                            : character.level > 3
+                            ? "bg-blue-400"
+                            : "bg-purple-400"
                         }`}
                         style={{
                           top: "50%",
@@ -161,11 +266,41 @@ export default function CharacterCard({ character, gameData, onUpgrade, isProces
             <div className="p-4">
               <h3 className="font-bold text-center mb-2">{character.name}</h3>
 
+              {/* แสดงแถบประสบการณ์ */}
+              <div className="mb-3">
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="flex items-center gap-1">
+                    <Star className="h-3 w-3 text-yellow-400" />
+                    <span>{locale === "th" ? "ประสบการณ์" : "Experience"}</span>
+                  </span>
+                  <span className="font-mono">
+                    {character.experience || 0}/{character.level * 100}
+                  </span>
+                </div>
+                <Progress
+                  value={xpPercent}
+                  className="h-1.5"
+                  style={
+                    {
+                      "--radix-progress-indicator-transform-origin": "0 0",
+                      backgroundColor:
+                        character.level > 5
+                          ? "linear-gradient(to right, #f59e0b, #fcd34d)"
+                          : character.level > 3
+                          ? "linear-gradient(to right, #3b82f6, #60a5fa)"
+                          : "linear-gradient(to right, #8b5cf6, #a78bfa)",
+                    } as React.CSSProperties
+                  }
+                />
+              </div>
+
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center gap-1">
                     <Sword className="h-4 w-4 text-red-400" />
-                    <span>พลังโจมตี</span>
+                    <span>
+                      {locale === "th" ? "พลังโจมตี" : "Attack Power"}
+                    </span>
                   </div>
                   <span className="font-mono">{character.damage}</span>
                 </div>
@@ -173,7 +308,7 @@ export default function CharacterCard({ character, gameData, onUpgrade, isProces
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center gap-1">
                     <Shield className="h-4 w-4 text-blue-400" />
-                    <span>ความทนทาน</span>
+                    <span>{locale === "th" ? "ความทนทาน" : "Defense"}</span>
                   </div>
                   <span className="font-mono">{character.level * 10}</span>
                 </div>
@@ -181,11 +316,19 @@ export default function CharacterCard({ character, gameData, onUpgrade, isProces
 
               <Button
                 onClick={handleUpgrade}
-                disabled={gameData.coins < upgradeCost || isProcessing || isUpgrading}
+                disabled={
+                  gameData.coins < upgradeCost || isProcessing || isUpgrading
+                }
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
               >
                 <ArrowUp className="h-4 w-4 mr-1" />
-                อัพเกรด
+                {isUpgrading
+                  ? locale === "th"
+                    ? "กำลังอัพเกรด..."
+                    : "Upgrading..."
+                  : locale === "th"
+                  ? "อัพเกรด"
+                  : "Upgrade"}
                 <div className="flex items-center ml-2 bg-black/30 px-2 py-0.5 rounded-full">
                   <Coins className="h-3 w-3 text-yellow-400 mr-1" />
                   <span className="text-xs">{upgradeCost}</span>
@@ -196,6 +339,5 @@ export default function CharacterCard({ character, gameData, onUpgrade, isProces
         </CardContent>
       </Card>
     </motion.div>
-  )
+  );
 }
-

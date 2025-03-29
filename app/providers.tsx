@@ -1,51 +1,46 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { WagmiProvider } from "wagmi";
-import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
-import { ThemeProvider } from "@/components/theme-provider";
-import { config } from "@/lib/rainbow-config";
-import { Web3Provider } from "@/lib/web3-client";
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
-import { Toaster } from "sonner";
+import type React from "react";
+
 import { I18nProvider } from "@/lib/i18n";
+import { ThemeProvider } from "next-themes";
+import { Toaster } from "sonner";
+import { Web3Provider } from "@/lib/web3-client";
+import {
+  RainbowKitProvider,
+  darkTheme,
+  lightTheme,
+} from "@rainbow-me/rainbowkit";
+import { WagmiProvider } from "wagmi";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { config, queryClient } from "@/lib/rainbow-config";
 
-// สร้าง QueryClient สำหรับ React Query
-const queryClient = new QueryClient();
-
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <WagmiProvider config={config}>
         <RainbowKitProvider
-          theme={darkTheme({
-            accentColor: "#8b5cf6", // purple-500
-            accentColorForeground: "white",
-            borderRadius: "medium",
-            fontStack: "system",
-          })}
+          theme={{
+            lightMode: lightTheme(),
+            darkMode: darkTheme(),
+          }}
           modalSize="compact"
         >
           <Web3Provider>
-            <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              enableSystem={true}
+              disableTransitionOnChange
+            >
               <I18nProvider>
-                <Toaster
-                  position="top-right"
-                  closeButton
-                  richColors
-                  toastOptions={{
-                    style: {
-                      background: "rgba(0,0,0,0.8)",
-                      backdropFilter: "blur(10px)",
-                    },
-                  }}
-                />
+                <Toaster richColors position="top-right" />
                 {children}
               </I18nProvider>
             </ThemeProvider>
           </Web3Provider>
         </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+      </WagmiProvider>
+    </QueryClientProvider>
   );
 }

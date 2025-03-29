@@ -1,15 +1,15 @@
-import type React from "react"
+import type React from "react";
 
 interface NFT {
-  id: string
-  name: string
-  image: string
-  description: string
-  price: number
+  id: string;
+  name: string;
+  image: string;
+  description: string;
+  price: number;
 }
 
 interface NFTDisplayProps {
-  nft: NFT
+  nft: NFT;
 }
 
 const NFTDisplay: React.FC<NFTDisplayProps> = ({ nft }) => {
@@ -27,8 +27,7 @@ const NFTDisplay: React.FC<NFTDisplayProps> = ({ nft }) => {
         <p>Price: {nft.price} ETH</p>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default NFTDisplay
-
+export default NFTDisplay;

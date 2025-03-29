@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { useRouter } from "next/navigation"
-import { useAccount } from "wagmi"
-import { useI18n } from "@/lib/i18n"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { useAccount } from "wagmi";
+import { useI18n } from "@/lib/i18n";
 import {
   SidebarProvider,
   Sidebar,
@@ -17,49 +17,65 @@ import {
   SidebarMenuButton,
   SidebarTrigger,
   SidebarSeparator,
-} from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/theme-toggle"
-import LanguageSwitcher from "@/components/language-switcher"
-import NetworkSwitcher from "@/components/network-switcher"
-import { formatAddress } from "@/lib/utils"
-import { Sword, Users, Map, Package, ScrollText, Trophy, Settings, LogOut, Wallet, Coins, Home } from "lucide-react"
-import { toast } from "sonner"
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
+import LanguageSwitcher from "@/components/language-switcher";
+import NetworkSwitcher from "@/components/network-switcher";
+import { formatAddress } from "@/lib/utils";
+import {
+  Sword,
+  Users,
+  Map,
+  Package,
+  ScrollText,
+  Trophy,
+  Settings,
+  LogOut,
+  Wallet,
+  Coins,
+  Home,
+} from "lucide-react";
+import { toast } from "sonner";
 
 interface GameLayoutProps {
-  children: React.ReactNode
-  gameData: any
-  playerAddress: string
+  children: React.ReactNode;
+  gameData: any;
+  playerAddress: string;
 }
 
-export default function GameLayout({ children, gameData, playerAddress }: GameLayoutProps) {
-  const { address, isConnected } = useAccount()
-  const { t } = useI18n()
-  const router = useRouter()
-  const [mounted, setMounted] = useState(false)
+export default function GameLayout({
+  children,
+  gameData,
+  playerAddress,
+}: GameLayoutProps) {
+  const { address, isConnected } = useAccount();
+  const { t } = useI18n();
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
   // Fix hydration issues
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
   // Redirect to home if not connected
   useEffect(() => {
     if (mounted && !isConnected) {
-      router.push("/")
+      router.push("/");
     }
-  }, [mounted, isConnected, router])
+  }, [mounted, isConnected, router]);
 
   const handleLogout = () => {
     // ใช้ router.push แทน window.location.href เพื่อให้เป็น client-side navigation
-    router.push("/")
+    router.push("/");
     toast.success(t("common.success"), {
       description: t("common.logout"),
       position: "top-right",
-    })
-  }
+    });
+  };
 
-  if (!mounted) return null
+  if (!mounted) return null;
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -80,7 +96,10 @@ export default function GameLayout({ children, gameData, playerAddress }: GameLa
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip={t("game.tabs.battle")} isActive={true}>
+                <SidebarMenuButton
+                  tooltip={t("game.tabs.battle")}
+                  isActive={true}
+                >
                   <Sword className="h-4 w-4 text-red-400" />
                   <span>{t("game.tabs.battle")}</span>
                 </SidebarMenuButton>
@@ -130,7 +149,10 @@ export default function GameLayout({ children, gameData, playerAddress }: GameLa
 
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Home" onClick={() => router.push("/")}>
+                <SidebarMenuButton
+                  tooltip="Home"
+                  onClick={() => router.push("/")}
+                >
                   <Home className="h-4 w-4 text-gray-400" />
                   <span>Home</span>
                 </SidebarMenuButton>
@@ -149,14 +171,18 @@ export default function GameLayout({ children, gameData, playerAddress }: GameLa
             {address && (
               <div className="mb-2 flex items-center gap-2 rounded-md bg-black/20 p-2">
                 <Wallet className="h-4 w-4 text-purple-400" />
-                <span className="text-xs text-gray-300">{formatAddress(address)}</span>
+                <span className="text-xs text-gray-300">
+                  {formatAddress(address)}
+                </span>
               </div>
             )}
 
             {gameData && (
               <div className="mb-4 flex items-center gap-2 rounded-md bg-black/20 p-2">
                 <Coins className="h-4 w-4 text-yellow-400" />
-                <span className="text-xs text-yellow-300">{gameData.coins.toLocaleString()}</span>
+                <span className="text-xs text-yellow-300">
+                  {gameData.coins.toLocaleString()}
+                </span>
               </div>
             )}
 
@@ -166,7 +192,12 @@ export default function GameLayout({ children, gameData, playerAddress }: GameLa
                 <ThemeToggle />
               </div>
               <NetworkSwitcher />
-              <Button variant="destructive" size="sm" className="w-full mt-2" onClick={handleLogout}>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full mt-2"
+                onClick={handleLogout}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 {t("common.back")}
               </Button>
@@ -175,12 +206,15 @@ export default function GameLayout({ children, gameData, playerAddress }: GameLa
         </Sidebar>
 
         <main className="flex-1 overflow-auto p-6 pt-16">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
             {children}
           </motion.div>
         </main>
       </div>
     </SidebarProvider>
-  )
+  );
 }
-

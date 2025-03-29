@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import { motion } from "framer-motion"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { Sword, ArrowUp, Coins, Users, Plus } from "lucide-react"
-import Image from "next/image"
+import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Sword, ArrowUp, Coins, Users, Plus } from "lucide-react";
+import Image from "next/image";
 
 interface CharactersPanelProps {
-  gameData: any
-  onBuyCharacter: (cost: number) => void
-  onUpgradeCharacter: (id: number, cost: number) => void
-  isProcessing: boolean
+  gameData: any;
+  onBuyCharacter: (cost: number) => void;
+  onUpgradeCharacter: (id: number, cost: number) => void;
+  isProcessing: boolean;
 }
 
 export default function CharactersPanel({
@@ -21,7 +21,7 @@ export default function CharactersPanel({
   onUpgradeCharacter,
   isProcessing,
 }: CharactersPanelProps) {
-  const characterCost = 50 * gameData.characters.length
+  const characterCost = 50 * gameData.characters.length;
 
   return (
     <Card className="border-0 bg-transparent">
@@ -41,7 +41,11 @@ export default function CharactersPanel({
       <CardContent className="p-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {gameData.characters.map((character) => (
-            <motion.div key={character.id} whileHover={{ scale: 1.03 }} className="h-full">
+            <motion.div
+              key={character.id}
+              whileHover={{ scale: 1.03 }}
+              className="h-full"
+            >
               <Card className="h-full bg-black/40 border-purple-500/50 backdrop-blur-sm">
                 <CardContent className="p-4 flex flex-col h-full">
                   <div className="flex items-center gap-3 mb-3">
@@ -81,8 +85,12 @@ export default function CharactersPanel({
                     variant="outline"
                     size="sm"
                     className="w-full bg-purple-950/50 border-purple-500/50 hover:bg-purple-900/70"
-                    onClick={() => onUpgradeCharacter(character.id, character.level * 25)}
-                    disabled={gameData.coins < character.level * 25 || isProcessing}
+                    onClick={() =>
+                      onUpgradeCharacter(character.id, character.level * 25)
+                    }
+                    disabled={
+                      gameData.coins < character.level * 25 || isProcessing
+                    }
                   >
                     <ArrowUp className="h-4 w-4 mr-2" />
                     อัพเกรด
@@ -104,18 +112,23 @@ export default function CharactersPanel({
               <div className="mb-4 w-16 h-16 rounded-full bg-purple-900/30 flex items-center justify-center">
                 <Plus className="h-8 w-8 text-purple-400" />
               </div>
-              <h3 className="font-medium text-center mb-2">จ้างนักผจญภัยใหม่</h3>
+              <h3 className="font-medium text-center mb-2">
+                จ้างนักผจญภัยใหม่
+              </h3>
               <div className="flex items-center gap-1 text-yellow-400">
                 <Coins className="h-4 w-4" />
                 <span>{characterCost}</span>
               </div>
-              {gameData.coins < characterCost && <p className="text-xs text-red-400 mt-2">เหรียญไม่พอ</p>}
-              {isProcessing && <p className="text-xs text-gray-400 mt-2">กำลังดำเนินการ...</p>}
+              {gameData.coins < characterCost && (
+                <p className="text-xs text-red-400 mt-2">เหรียญไม่พอ</p>
+              )}
+              {isProcessing && (
+                <p className="text-xs text-gray-400 mt-2">กำลังดำเนินการ...</p>
+              )}
             </Card>
           </motion.div>
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
-

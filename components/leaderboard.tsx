@@ -1,35 +1,45 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Trophy, Medal, Users, ArrowUp, ArrowDown, Sparkles, Crown } from "lucide-react"
-import { useI18n } from "@/lib/i18n"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Trophy,
+  Medal,
+  Users,
+  ArrowUp,
+  ArrowDown,
+  Sparkles,
+  Crown,
+} from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface LeaderboardEntry {
-  id: string
-  rank: number
-  name: string
-  address: string
-  avatar: string
-  score: number
-  level: number
-  change: number // Positive for up, negative for down, 0 for no change
+  id: string;
+  rank: number;
+  name: string;
+  address: string;
+  avatar: string;
+  score: number;
+  level: number;
+  change: number; // Positive for up, negative for down, 0 for no change
 }
 
 export default function Leaderboard() {
-  const { t } = useI18n()
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("global")
+  const { t } = useI18n();
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>(
+    []
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("global");
 
   // Generate mock leaderboard data
   useEffect(() => {
-    setIsLoading(true)
+    setIsLoading(true);
 
     // Simulate API call
     setTimeout(() => {
@@ -134,40 +144,40 @@ export default function Leaderboard() {
           level: 18,
           change: 0,
         },
-      ]
+      ];
 
-      setLeaderboardData(mockData)
-      setIsLoading(false)
-    }, 1000)
-  }, [])
+      setLeaderboardData(mockData);
+      setIsLoading(false);
+    }, 1000);
+  }, []);
 
   // Get rank badge color
   const getRankBadgeColor = (rank: number) => {
     switch (rank) {
       case 1:
-        return "bg-yellow-500 text-black"
+        return "bg-yellow-500 text-black";
       case 2:
-        return "bg-gray-300 text-black"
+        return "bg-gray-300 text-black";
       case 3:
-        return "bg-amber-600 text-black"
+        return "bg-amber-600 text-black";
       default:
-        return "bg-purple-600"
+        return "bg-purple-600";
     }
-  }
+  };
 
   // Get rank icon
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <Crown className="h-4 w-4" />
+        return <Crown className="h-4 w-4" />;
       case 2:
-        return <Medal className="h-4 w-4" />
+        return <Medal className="h-4 w-4" />;
       case 3:
-        return <Trophy className="h-4 w-4" />
+        return <Trophy className="h-4 w-4" />;
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   return (
     <Card className="border-purple-500/30 bg-black/40 backdrop-blur-sm">
@@ -204,7 +214,10 @@ export default function Leaderboard() {
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="bg-black/30 rounded-lg p-4 animate-pulse">
+                <div
+                  key={i}
+                  className="bg-black/30 rounded-lg p-4 animate-pulse"
+                >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-gray-700/30"></div>
                     <div className="flex-1">
@@ -219,17 +232,25 @@ export default function Leaderboard() {
           ) : (
             <div className="space-y-3">
               {leaderboardData.map((entry) => (
-                <motion.div key={entry.id} whileHover={{ scale: 1.02 }} className="bg-black/30 rounded-lg p-3">
+                <motion.div
+                  key={entry.id}
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-black/30 rounded-lg p-3"
+                >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-8 h-8 rounded-full ${getRankBadgeColor(entry.rank)} flex items-center justify-center font-bold text-sm`}
+                      className={`w-8 h-8 rounded-full ${getRankBadgeColor(
+                        entry.rank
+                      )} flex items-center justify-center font-bold text-sm`}
                     >
                       {getRankIcon(entry.rank) || entry.rank}
                     </div>
 
                     <Avatar className="h-10 w-10 border-2 border-purple-500/50">
                       <AvatarImage src={entry.avatar} alt={entry.name} />
-                      <AvatarFallback>{entry.name.substring(0, 2)}</AvatarFallback>
+                      <AvatarFallback>
+                        {entry.name.substring(0, 2)}
+                      </AvatarFallback>
                     </Avatar>
 
                     <div className="flex-1">
@@ -241,8 +262,8 @@ export default function Leaderboard() {
                               entry.rank === 1
                                 ? "text-yellow-400"
                                 : entry.rank === 2
-                                  ? "text-gray-300"
-                                  : "text-amber-600"
+                                ? "text-gray-300"
+                                : "text-amber-600"
                             }`}
                           />
                         )}
@@ -251,7 +272,9 @@ export default function Leaderboard() {
                     </div>
 
                     <div className="flex flex-col items-end">
-                      <div className="font-bold">{entry.score.toLocaleString()}</div>
+                      <div className="font-bold">
+                        {entry.score.toLocaleString()}
+                      </div>
                       <div className="flex items-center gap-1 text-xs">
                         <span className="text-gray-400">Lvl {entry.level}</span>
                         {entry.change !== 0 && (
@@ -263,7 +286,11 @@ export default function Leaderboard() {
                                 : "bg-red-500/20 text-red-300 border-red-500"
                             } flex items-center gap-0.5 px-1.5 py-0`}
                           >
-                            {entry.change > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                            {entry.change > 0 ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3" />
+                            )}
                             {Math.abs(entry.change)}
                           </Badge>
                         )}
@@ -274,7 +301,10 @@ export default function Leaderboard() {
               ))}
 
               <div className="flex justify-center mt-4">
-                <Button variant="outline" className="border-purple-500/30 hover:bg-purple-500/20">
+                <Button
+                  variant="outline"
+                  className="border-purple-500/30 hover:bg-purple-500/20"
+                >
                   <Users className="h-4 w-4 mr-2" />
                   View All Players
                 </Button>
@@ -284,6 +314,5 @@ export default function Leaderboard() {
         </Tabs>
       </CardContent>
     </Card>
-  )
+  );
 }
-

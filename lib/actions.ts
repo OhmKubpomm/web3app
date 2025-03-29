@@ -53,7 +53,7 @@ export async function saveGameData(address: string, gameData: any) {
     }
 
     // ตั้งค่า cookie เพื่อระบุผู้เล่น
-    cookies().set("player_address", address, {
+    (await cookies()).set("player_address", address, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 30, // 30 วัน
@@ -177,7 +177,9 @@ export async function loadGameData(address: string) {
           rarity: item.rarity,
           image: item.image,
           tokenId: item.token_id,
-          mintedAt: item.minted_at?.toISOString(),
+          mintedAt: item.minted_at
+            ? formatDateToISOString(formatDateValue(item.minted_at))
+            : undefined,
         })) || [],
       upgrades: {
         autoBattle: user.upgrades?.auto_battle || false,

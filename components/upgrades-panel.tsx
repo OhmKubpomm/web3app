@@ -1,21 +1,25 @@
-"use client"
+"use client";
 
-import { motion } from "framer-motion"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Sparkles, Shield, Sword, Coins, ChevronRight } from "lucide-react"
+import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Sparkles, Shield, Sword, Coins, ChevronRight } from "lucide-react";
 
 interface UpgradesPanelProps {
-  gameData: any
-  onBuyUpgrade: (type: string, cost: number) => void
-  isProcessing: boolean
+  gameData: any;
+  onBuyUpgrade: (type: string, cost: number) => void;
+  isProcessing: boolean;
 }
 
-export default function UpgradesPanel({ gameData, onBuyUpgrade, isProcessing }: UpgradesPanelProps) {
+export default function UpgradesPanel({
+  gameData,
+  onBuyUpgrade,
+  isProcessing,
+}: UpgradesPanelProps) {
   // กำหนดราคาอัพเกรด
-  const autoBattleCost = 100
-  const inventorySlotsCost = 250
-  const damageMultiplierCost = 500
+  const autoBattleCost = 100;
+  const inventorySlotsCost = 250;
+  const damageMultiplierCost = 500;
 
   return (
     <Card className="bg-black/40 border-purple-500/50 backdrop-blur-sm">
@@ -23,11 +27,17 @@ export default function UpgradesPanel({ gameData, onBuyUpgrade, isProcessing }: 
         <CardTitle className="text-lg">อัพเกรดระบบ</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <motion.div whileHover={{ scale: gameData.upgrades.autoBattle ? 1 : 1.02 }}>
+        <motion.div
+          whileHover={{ scale: gameData.upgrades.autoBattle ? 1 : 1.02 }}
+        >
           <Button
             variant="outline"
             className="w-full justify-between bg-purple-950/50 border-purple-500/50 hover:bg-purple-900/70"
-            disabled={gameData.coins < autoBattleCost || gameData.upgrades.autoBattle || isProcessing}
+            disabled={
+              gameData.coins < autoBattleCost ||
+              gameData.upgrades.autoBattle ||
+              isProcessing
+            }
             onClick={() => onBuyUpgrade("autoBattle", autoBattleCost)}
           >
             <div className="flex items-center gap-2">
@@ -72,7 +82,9 @@ export default function UpgradesPanel({ gameData, onBuyUpgrade, isProcessing }: 
             variant="outline"
             className="w-full justify-between bg-purple-950/50 border-purple-500/50 hover:bg-purple-900/70"
             disabled={gameData.coins < damageMultiplierCost || isProcessing}
-            onClick={() => onBuyUpgrade("damageMultiplier", damageMultiplierCost)}
+            onClick={() =>
+              onBuyUpgrade("damageMultiplier", damageMultiplierCost)
+            }
           >
             <div className="flex items-center gap-2">
               <Sword className="h-4 w-4 text-red-400" />
@@ -87,10 +99,12 @@ export default function UpgradesPanel({ gameData, onBuyUpgrade, isProcessing }: 
         </motion.div>
 
         <div className="mt-2 p-3 bg-black/30 rounded-md text-xs text-gray-400">
-          <p>อัพเกรดระบบจะช่วยให้คุณเก็บเลเวลได้เร็วขึ้น และเพิ่มประสิทธิภาพในการต่อสู้</p>
+          <p>
+            อัพเกรดระบบจะช่วยให้คุณเก็บเลเวลได้เร็วขึ้น
+            และเพิ่มประสิทธิภาพในการต่อสู้
+          </p>
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
-
