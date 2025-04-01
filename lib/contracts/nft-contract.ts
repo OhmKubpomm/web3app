@@ -1,18 +1,13 @@
-// NFT Contract ABI สำหรับใช้งานกับ Ethereum
+// แก้ไข NFT Contract ABI ให้ตรงกับ contract ที่ deploy
 export const NFTContract = {
   address: process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS as string,
   abi: [
     {
       inputs: [
         {
-          internalType: "string",
-          name: "name",
-          type: "string",
-        },
-        {
-          internalType: "string",
-          name: "symbol",
-          type: "string",
+          internalType: "address",
+          name: "initialOwner",
+          type: "address",
         },
       ],
       stateMutability: "nonpayable",
@@ -66,6 +61,25 @@ export const NFTContract = {
         },
       ],
       name: "ApprovalForAll",
+      type: "event",
+    },
+    {
+      anonymous: false,
+      inputs: [
+        {
+          indexed: true,
+          internalType: "address",
+          name: "previousOwner",
+          type: "address",
+        },
+        {
+          indexed: true,
+          internalType: "address",
+          name: "newOwner",
+          type: "address",
+        },
+      ],
+      name: "OwnershipTransferred",
       type: "event",
     },
     {
@@ -211,6 +225,19 @@ export const NFTContract = {
       type: "function",
     },
     {
+      inputs: [],
+      name: "owner",
+      outputs: [
+        {
+          internalType: "address",
+          name: "",
+          type: "address",
+        },
+      ],
+      stateMutability: "view",
+      type: "function",
+    },
+    {
       inputs: [
         {
           internalType: "uint256",
@@ -227,6 +254,13 @@ export const NFTContract = {
         },
       ],
       stateMutability: "view",
+      type: "function",
+    },
+    {
+      inputs: [],
+      name: "renounceOwnership",
+      outputs: [],
+      stateMutability: "nonpayable",
       type: "function",
     },
     {
@@ -301,6 +335,19 @@ export const NFTContract = {
     {
       inputs: [
         {
+          internalType: "string",
+          name: "baseURI",
+          type: "string",
+        },
+      ],
+      name: "setBaseURI",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    {
+      inputs: [
+        {
           internalType: "bytes4",
           name: "interfaceId",
           type: "bytes4",
@@ -368,6 +415,19 @@ export const NFTContract = {
         },
       ],
       name: "transferFrom",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "newOwner",
+          type: "address",
+        },
+      ],
+      name: "transferOwnership",
       outputs: [],
       stateMutability: "nonpayable",
       type: "function",

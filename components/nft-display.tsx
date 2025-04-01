@@ -1,4 +1,4 @@
-import type React from "react";
+import type { FC } from "react";
 
 interface NFT {
   id: string;
@@ -12,11 +12,10 @@ interface NFTDisplayProps {
   nft: NFT;
 }
 
-const NFTDisplay: React.FC<NFTDisplayProps> = ({ nft }) => {
+const NFTDisplay: FC<NFTDisplayProps> = ({ nft }) => {
   return (
     <div className="nft-card">
       <img
-        // NFT item images - Blockchain collectibles
         src={`/images/nfts/${nft.image || "default-nft.png"}`}
         alt={`NFT: ${nft.name}`}
         className="nft-image"

@@ -17,30 +17,30 @@ import { config, queryClient } from "@/lib/rainbow-config";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <WagmiProvider config={config}>
-        <RainbowKitProvider
-          theme={{
-            lightMode: lightTheme(),
-            darkMode: darkTheme(),
-          }}
-          modalSize="compact"
-        >
-          <Web3Provider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="dark"
-              enableSystem={true}
-              disableTransitionOnChange
-            >
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem={true}
+      disableTransitionOnChange
+    >
+      <QueryClientProvider client={queryClient}>
+        <WagmiProvider config={config}>
+          <RainbowKitProvider
+            theme={{
+              lightMode: lightTheme(),
+              darkMode: darkTheme(),
+            }}
+            modalSize="compact"
+          >
+            <Web3Provider>
               <I18nProvider>
-                <Toaster richColors position="top-right" />
                 {children}
+                <Toaster richColors position="top-right" />
               </I18nProvider>
-            </ThemeProvider>
-          </Web3Provider>
-        </RainbowKitProvider>
-      </WagmiProvider>
-    </QueryClientProvider>
+            </Web3Provider>
+          </RainbowKitProvider>
+        </WagmiProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

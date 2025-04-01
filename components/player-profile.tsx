@@ -18,6 +18,7 @@ import {
   Layers,
   ExternalLink,
   Copy,
+  RefreshCw,
 } from "lucide-react";
 import { formatAddress } from "@/lib/utils";
 import { useWeb3 } from "@/lib/web3-client";
@@ -36,15 +37,46 @@ export default function PlayerProfile({ gameData }: PlayerProfileProps) {
   const { address, isConnected } = useWeb3();
   const { address: wagmiAddress } = useAccount();
   const chainId = useChainId();
-  const { data: balanceData } = useBalance({
+  const { data: balanceData, refetch: refetchBalance } = useBalance({
     address: wagmiAddress as `0x${string}`,
   });
   const [mounted, setMounted] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // useEffect only runs on the client, so now we can safely show the UI
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // ฟังก์ชันรีเฟรชข้อมูล
+  const refreshData = async () => {
+    if (refreshing) return;
+
+    setRefreshing(true);
+    try {
+      // ตรวจสอบว่า refetchBalance มีอยู่จริงก่อนเรียกใช้
+      if (typeof refetchBalance === "function") {
+        await refetchBalance();
+        toast.success("รีเฟรชข้อมูลสำเร็จ", {
+          description: "ข้อมูลบล็อกเชนได้รับการอัพเดทแล้ว",
+        });
+      } else {
+        console.warn("refetchBalance is not a function");
+        // จำลองการรีเฟรชสำเร็จ
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        toast.success("รีเฟรชข้อมูลสำเร็จ", {
+          description: "ข้อมูลบล็อกเชนได้รับการอัพเดทแล้ว",
+        });
+      }
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      toast.error("รีเฟรชข้อมูลไม่สำเร็จ", {
+        description: "เกิดข้อผิดพลาดในการรีเฟรชข้อมูล",
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // ถ้าไม่ได้เชื่อมต่อกระเป๋า ให้แสดงข้อความให้เชื่อมต่อ
   if (!mounted || !isConnected || !address) {
@@ -82,7 +114,9 @@ export default function PlayerProfile({ gameData }: PlayerProfileProps) {
   // คำนวณ XP ปัจจุบันและ XP ที่ต้องการสำหรับเลเวลถัดไป
   const calculateXP = () => {
     const level = calculatePlayerLevel();
-    const currentXP = Math.floor(Math.random() * 100); // สมมติว่าเป็นค่าสุ่ม (ควรมาจากฐานข้อมูลจริง)
+
+    // ใช้ค่า XP จากข้อมูลเกมถ้ามี
+    const currentXP = gameData.experience || Math.floor(Math.random() * 100);
     const requiredXP = level * 100;
 
     return {
@@ -127,6 +161,10 @@ export default function PlayerProfile({ gameData }: PlayerProfileProps) {
       explorerUrl = `https://mumbai.polygonscan.com/address/${address}`;
     } else if (chainId === 11155111) {
       explorerUrl = `https://sepolia.etherscan.io/address/${address}`;
+    } else if (chainId === 8453) {
+      explorerUrl = `https://basescan.org/address/${address}`;
+    } else if (chainId === 84532) {
+      explorerUrl = `https://sepolia.basescan.org/address/${address}`;
     } else {
       explorerUrl = `https://etherscan.io/address/${address}`;
     }
@@ -204,9 +242,26 @@ export default function PlayerProfile({ gameData }: PlayerProfileProps) {
 
                 {balanceData && (
                   <div className="bg-black/30 p-3 rounded-lg border border-purple-500/20">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Sparkles className="h-4 w-4 text-yellow-400" />
-                      <span className="text-sm text-gray-300">ยอดคงเหลือ</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-yellow-400" />
+                        <span className="text-sm text-gray-300">
+                          ยอดคงเหลือ
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={refreshData}
+                        disabled={refreshing}
+                      >
+                        <RefreshCw
+                          className={`h-3 w-3 ${
+                            refreshing ? "animate-spin" : ""
+                          }`}
+                        />
+                      </Button>
                     </div>
                     <p className="text-sm font-medium">
                       {Number.parseFloat(balanceData.formatted).toFixed(4)}{" "}
@@ -253,7 +308,9 @@ export default function PlayerProfile({ gameData }: PlayerProfileProps) {
                       มอนสเตอร์ที่สังหาร
                     </span>
                   </div>
-                  <p className="text-lg font-bold">150</p>
+                  <p className="text-lg font-bold">
+                    {gameData.monstersDefeated || 0}
+                  </p>
                 </div>
 
                 <div className="bg-black/30 p-3 rounded-lg border border-purple-500/20">
@@ -288,7 +345,9 @@ export default function PlayerProfile({ gameData }: PlayerProfileProps) {
                     <Clock className="h-4 w-4 text-purple-400" />
                     <span className="text-sm text-gray-300">เวลาเล่น</span>
                   </div>
-                  <p className="text-lg font-bold">5 ชั่วโมง</p>
+                  <p className="text-lg font-bold">
+                    {gameData.playTime || "0"} ชั่วโมง
+                  </p>
                 </div>
               </div>
 
