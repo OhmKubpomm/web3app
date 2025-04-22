@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Shield, Sword, Coins, ChevronRight } from "lucide-react";
+import { useMemo } from "react";
 
 interface UpgradesPanelProps {
   gameData: any;
@@ -21,22 +22,22 @@ export default function UpgradesPanel({
   const inventorySlotsCost = 250;
   const damageMultiplierCost = 500;
 
+  // ป้องกัน error กรณี gameData หรือ gameData.upgrades เป็น undefined
+  const upgrades = useMemo(() => gameData?.upgrades || {}, [gameData]);
+  const coins = gameData?.coins ?? 0;
+
   return (
     <Card className="bg-black/40 border-purple-500/50 backdrop-blur-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg">อัพเกรดระบบ</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <motion.div
-          whileHover={{ scale: gameData.upgrades.autoBattle ? 1 : 1.02 }}
-        >
+        <motion.div whileHover={{ scale: upgrades.autoBattle ? 1 : 1.02 }}>
           <Button
             variant="outline"
             className="w-full justify-between bg-purple-950/50 border-purple-500/50 hover:bg-purple-900/70"
             disabled={
-              gameData.coins < autoBattleCost ||
-              gameData.upgrades.autoBattle ||
-              isProcessing
+              coins < autoBattleCost || upgrades.autoBattle || isProcessing
             }
             onClick={() => onBuyUpgrade("autoBattle", autoBattleCost)}
           >
@@ -45,7 +46,7 @@ export default function UpgradesPanel({
               <span>ระบบต่อสู้อัตโนมัติ</span>
             </div>
             <div className="flex items-center gap-1">
-              {gameData.upgrades.autoBattle ? (
+              {upgrades.autoBattle ? (
                 <span className="text-green-400">ปลดล็อกแล้ว</span>
               ) : (
                 <>
@@ -62,7 +63,7 @@ export default function UpgradesPanel({
           <Button
             variant="outline"
             className="w-full justify-between bg-purple-950/50 border-purple-500/50 hover:bg-purple-900/70"
-            disabled={gameData.coins < inventorySlotsCost || isProcessing}
+            disabled={coins < inventorySlotsCost || isProcessing}
             onClick={() => onBuyUpgrade("inventorySlots", inventorySlotsCost)}
           >
             <div className="flex items-center gap-2">
@@ -81,7 +82,7 @@ export default function UpgradesPanel({
           <Button
             variant="outline"
             className="w-full justify-between bg-purple-950/50 border-purple-500/50 hover:bg-purple-900/70"
-            disabled={gameData.coins < damageMultiplierCost || isProcessing}
+            disabled={coins < damageMultiplierCost || isProcessing}
             onClick={() =>
               onBuyUpgrade("damageMultiplier", damageMultiplierCost)
             }

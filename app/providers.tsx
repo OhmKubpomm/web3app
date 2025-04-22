@@ -3,9 +3,8 @@
 import type React from "react";
 
 import { I18nProvider } from "@/lib/i18n";
-import { ThemeProvider } from "next-themes";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
-import { Web3Provider } from "@/lib/web3-client";
 import {
   RainbowKitProvider,
   darkTheme,
@@ -31,13 +30,20 @@ export function Providers({ children }: { children: React.ReactNode }) {
               darkMode: darkTheme(),
             }}
             modalSize="compact"
+            appInfo={{
+              appName: "Adventure Clicker",
+              disclaimer: () => (
+                <div className="text-xs text-center p-2 mt-4">
+                  By connecting your wallet, you agree to the terms of service
+                  and privacy policy.
+                </div>
+              ),
+            }}
           >
-            <Web3Provider>
-              <I18nProvider>
-                {children}
-                <Toaster richColors position="top-right" />
-              </I18nProvider>
-            </Web3Provider>
+            <I18nProvider>
+              {children}
+              <Toaster richColors position="top-right" />
+            </I18nProvider>
           </RainbowKitProvider>
         </WagmiProvider>
       </QueryClientProvider>

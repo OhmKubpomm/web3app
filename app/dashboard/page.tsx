@@ -1,25 +1,61 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import GameDashboard from "@/components/game-dashboard";
-import { loadGameData } from "@/lib/actions";
+import DashboardClient from "./page-client";
+
+// กำหนด interface สำหรับข้อมูลเกม
+interface GameData {
+  playerAddress: string;
+  level: number;
+  experience: number;
+  gold: number;
+  coins: number;
+  damage: number;
+  autoDamage: number;
+  currentArea: string;
+  items: any[];
+  lastUpdated: string;
+}
+
+// ฟังก์ชันสำหรับดึงข้อมูลเกมของผู้เล่นจากฐานข้อมูล
+async function getInitialGameData(playerAddress: string): Promise<GameData | null> {
+  try {
+    console.log("Fetching initial game data for:", playerAddress);
+    // จำลองการดึงข้อมูล - ปรับใช้ตามการเชื่อมต่อฐานข้อมูลจริง
+    return {
+      playerAddress,
+      level: 1,
+      experience: 0,
+      gold: 100,
+      coins: 0,
+      damage: 1,
+      autoDamage: 0,
+      currentArea: "ป่า",
+      items: [],
+      lastUpdated: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error("Error getting game data:", error);
+    return null;
+  }
+}
 
 export default async function DashboardPage() {
-  // ตรวจสอบว่ามีกระเป๋าที่เชื่อมต่อแล้วหรือไม่จาก cookie
-  const playerAddress = (await cookies()).get("player_address")?.value;
-
-  // ถ้าไม่มีกระเป๋าที่เชื่อมต่อ ให้ redirect ไปหน้าแรก
-  if (!playerAddress) {
-    return redirect("/");
+  console.log("Starting DashboardPage rendering");
+  // ดึง player_address จาก cookies เพื่อใช้ตรวจสอบและดึงข้อมูลเริ่มต้น
+  console.log("Before await cookies()");
+  const cookieStore = await cookies();
+  console.log("After await cookies()");
+  const playerAddress = cookieStore.get("player_address")?.value;
+  console.log("Player address from cookie:", playerAddress);
+  
+  // ถ้ามี player_address ใน cookie ให้ดึงข้อมูลเกมเริ่มต้น
+  let initialGameData: GameData | null = null;
+  if (playerAddress) {
+    console.log("Fetching initial game data...");
+    initialGameData = await getInitialGameData(playerAddress);
+    console.log("Game data fetched:", initialGameData ? "success" : "failed");
   }
-
-  // โหลดข้อมูลเกมจากฐานข้อมูล
-  const { success, data } = await loadGameData(playerAddress);
-
-  // ถ้าโหลดข้อมูลไม่สำเร็จ ให้ redirect ไปหน้าแรก
-  if (!success || !data) {
-    return redirect("/");
-  }
-
-  // ส่งข้อมูลไปยัง GameDashboard component
-  return <GameDashboard playerAddress={playerAddress} initialGameData={data} />;
+  
+  // ส่งข้อมูลเริ่มต้นไปให้ Client Component
+  console.log("Rendering DashboardClient with data:", initialGameData ? "exists" : "null");
+  return <DashboardClient initialGameData={initialGameData} />;
 }

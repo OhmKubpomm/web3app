@@ -1,26 +1,12 @@
-import { redirect } from "next/navigation";
-import GameDashboard from "@/components/game-dashboard";
-import { loadGameData } from "@/lib/actions";
-import { cookies } from "next/headers";
+import WalletStatus from "@/components/wallet-status";
 
-export default async function DashboardPage() {
-  // ดึง address จาก cookie (ใช้ await เพื่อแก้ไขข้อผิดพลาด)
-  const cookieStore = await cookies();
-  const playerAddress = cookieStore.get("player_address")?.value;
-
-  // ถ้าไม่มี address ให้ redirect ไปหน้าแรก
-  if (!playerAddress) {
-    redirect("/");
-  }
-
-  // โหลดข้อมูลเกมของผู้เล่น
-  const { success, data, error } = await loadGameData(playerAddress);
-
-  // ถ้าโหลดข้อมูลไม่สำเร็จ ให้ redirect ไปหน้าแรก
-  if (!success || !data) {
-    console.error("Error loading game data:", error);
-    redirect("/");
-  }
-
-  return <GameDashboard playerAddress={playerAddress} initialGameData={data} />;
+export default function HomePage() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[80vh] p-4">
+      <h1 className="text-4xl font-bold mb-8">Adventure Clicker</h1>
+      <p className="text-xl mb-8">เชื่อมต่อกระเป๋าเงินของคุณเพื่อเริ่มการผจญภัย</p>
+      
+      <WalletStatus />
+    </div>
+  );
 }

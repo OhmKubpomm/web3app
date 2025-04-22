@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useWeb3 } from "@/lib/web3-client";
 import { useAccount } from "wagmi";
 import { getNetworkName } from "@/lib/web3-client";
-import { Wallet, Network, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Wallet, Network, AlertTriangle, CheckCircle2, Check, AlertCircle, RefreshCw, Cpu, Copy, ExternalLink, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,15 +13,27 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { isSimulationMode, setSimulationMode } from "@/lib/simulation-mode";
 
 export default function Web3Status() {
   const { address, chainId, isConnected, connect, disconnect, switchNetwork } =
     useWeb3();
   const { address: wagmiAddress, isConnected: wagmiIsConnected } = useAccount();
+  const { openConnectModal } = useConnectModal();
   const [isLoading, setIsLoading] = useState(false);
+  const [simulation, setSimulation] = useState(false);
+
+  useEffect(() => {
+    // ตรวจสอบสถานะโหมดจำลองเมื่อคอมโพเนนท์โหลด
+    setSimulation(isSimulationMode());
+  }, []);
 
   // ใช้ address จาก wagmi ถ้า address จาก useWeb3 ไม่มี
   const actualAddress = address || wagmiAddress;
@@ -30,18 +42,38 @@ export default function Web3Status() {
   // ตรวจสอบว่าเป็นเครือข่าย Monad หรือไม่
   const isMonad = chainId === 10143;
 
+  const toggleSimulationMode = () => {
+    const newMode = !simulation;
+    setSimulationMode(newMode);
+    setSimulation(newMode);
+    
+    toast.success(
+      newMode 
+        ? "เปิดใช้งานโหมดจำลองแล้ว" 
+        : "ปิดใช้งานโหมดจำลอง กลับสู่โหมดบล็อกเชนจริง", 
+      {
+        description: newMode 
+          ? "ขณะนี้คุณสามารถใช้งานแอปได้โดยไม่ต้องเชื่อมต่อกับบล็อกเชน" 
+          : "คุณจำเป็นต้องเชื่อมต่อกระเป๋าเงินเพื่อดำเนินการต่อ"
+      }
+    );
+  };
+
   // ฟังก์ชันสำหรับเชื่อมต่อกระเป๋าเงิน
   const handleConnect = async () => {
-    setIsLoading(true);
-    try {
-      await connect();
-    } catch (error) {
-      console.error("Error connecting wallet:", error);
-      toast.error("เชื่อมต่อกระเป๋าเงินไม่สำเร็จ", {
-        description: "กรุณาลองใหม่อีกครั้ง",
-      });
-    } finally {
-      setIsLoading(false);
+    // ตรวจสอบว่า RainbowKit พร้อมใช้งานหรือไม่
+    if (openConnectModal) {
+      openConnectModal();
+    } else {
+      // ใช้วิธีการเชื่อมต่อทางเลือก
+      try {
+        await connect();
+      } catch (error) {
+        console.error("Error connecting:", error);
+        toast.error("ไม่สามารถเชื่อมต่อกระเป๋าเงินได้", {
+          description: "กรุณาลองอีกครั้งหรือใช้โหมดจำลองแทน",
+        });
+      }
     }
   };
 
@@ -75,16 +107,21 @@ export default function Web3Status() {
   // ถ้ายังไม่ได้เชื่อมต่อ
   if (!actualIsConnected) {
     return (
-      <Button
-        variant="outline"
-        size="sm"
-        className="bg-black/20 border-purple-500/30 hover:bg-black/40 hover:border-purple-500/50"
-        onClick={handleConnect}
-        disabled={isLoading}
-      >
-        <Wallet className="h-4 w-4 mr-2" />
-        {isLoading ? "กำลังเชื่อมต่อ..." : "เชื่อมต่อกระเป๋าเงิน"}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button onClick={handleConnect} className="bg-blue-600 hover:bg-blue-700">
+          เชื่อมต่อกระเป๋าเงิน
+        </Button>
+        
+        <Button
+          variant={simulation ? "default" : "outline"}
+          size="icon"
+          className={simulation ? "bg-purple-600 hover:bg-purple-700" : ""}
+          onClick={toggleSimulationMode}
+          title={simulation ? "ปิดโหมดจำลอง" : "เปิดโหมดจำลอง"}
+        >
+          <Cpu className="h-4 w-4" />
+        </Button>
+      </div>
     );
   }
 
@@ -95,78 +132,132 @@ export default function Web3Status() {
         <Button
           variant="outline"
           size="sm"
-          className="bg-black/20 border-purple-500/30 hover:bg-black/40 hover:border-purple-500/50"
+          className={`${
+            actualIsConnected
+              ? "bg-green-950/20 border-green-600/30 hover:bg-green-950/30"
+              : "bg-black/20 border-purple-500/30 hover:bg-black/40 hover:border-purple-500/50"
+          }`}
         >
-          <Network className="h-4 w-4 mr-2" />
-          <span className="hidden md:inline flex items-center gap-1">
-            {isMonad ? (
-              <>
+          {actualIsConnected ? (
+            <div className="flex items-center">
+              <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
+              <span>
+                {actualAddress?.slice(0, 4)}...{actualAddress?.slice(-4)}
+              </span>
+              {chainId && (
                 <Badge
                   variant="outline"
-                  className="h-4 bg-green-500/20 border-green-500 text-green-500 mr-1 px-1 py-0 text-[10px]"
+                  className="ml-2 h-5 border-blue-500/50 text-blue-400"
                 >
-                  <CheckCircle2 className="h-2 w-2 mr-0.5" />
-                  MONAD
+                  {isMonad ? "Monad" : getNetworkName(chainId)}
                 </Badge>
-              </>
-            ) : (
-              <>
+              )}
+              {simulation && (
                 <Badge
                   variant="outline"
-                  className="h-4 bg-yellow-500/20 border-yellow-500 text-yellow-500 mr-1 px-1 py-0 text-[10px]"
+                  className="ml-2 h-5 border-purple-500/50 text-purple-400"
                 >
-                  <AlertTriangle className="h-2 w-2 mr-0.5" />
-                  {getNetworkName(chainId)}
+                  Simulation
                 </Badge>
-              </>
-            )}
-          </span>
-          <span className="md:ml-2">
-            {actualAddress
-              ? `${actualAddress.slice(0, 6)}...${actualAddress.slice(-4)}`
-              : ""}
-          </span>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Network className="h-4 w-4" />
+              <span>เชื่อมต่อกระเป๋าเงิน</span>
+            </div>
+          )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>กระเป๋าเงินของคุณ</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="flex justify-between">
-          <span>เครือข่าย</span>
-          <span
-            className={`font-medium ${
-              isMonad ? "text-green-500" : "text-yellow-500"
-            }`}
-          >
-            {getNetworkName(chainId)}
-          </span>
-        </DropdownMenuItem>
-        <DropdownMenuItem className="flex justify-between">
-          <span>ที่อยู่</span>
-          <span className="font-mono text-xs">
-            {actualAddress
-              ? `${actualAddress.slice(0, 6)}...${actualAddress.slice(-4)}`
-              : ""}
-          </span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel>เปลี่ยนเครือข่าย</DropdownMenuLabel>
-        <DropdownMenuItem
-          onClick={handleSwitchToMonad}
-          className={isMonad ? "bg-green-900/20 text-green-300" : ""}
-        >
-          Monad Testnet {isMonad && "✓"}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => switchNetwork(1)}>
-          Ethereum Mainnet
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => switchNetwork(11155111)}>
-          Sepolia Testnet
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleDisconnect} className="text-red-500">
-          ตัดการเชื่อมต่อ
-        </DropdownMenuItem>
+      <DropdownMenuContent align="end" className="min-w-[240px]">
+        <DropdownMenuLabel>บัญชีของฉัน</DropdownMenuLabel>
+        {actualIsConnected ? (
+          <>
+            <DropdownMenuItem
+              className="flex gap-2"
+              onClick={() => {
+                navigator.clipboard.writeText(actualAddress || "");
+                toast.success("คัดลอกแล้ว", {
+                  description: "คัดลอกที่อยู่กระเป๋าเงินแล้ว",
+                });
+              }}
+            >
+              <Copy className="h-4 w-4" />
+              คัดลอกที่อยู่
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="flex gap-2"
+              onClick={() => {
+                window.open(
+                  `https://testnet.monadexplorer.com/address/${actualAddress}`,
+                  "_blank"
+                );
+              }}
+            >
+              <ExternalLink className="h-4 w-4" />
+              ดูบนบล็อกเอ็กซ์พลอเรอร์
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="flex gap-2"
+              onClick={toggleSimulationMode}
+            >
+              <Cpu className="h-4 w-4" />
+              {simulation ? "ปิดโหมดจำลอง" : "เปิดโหมดจำลอง"}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="flex gap-2">
+                <Network className="h-4 w-4" />
+                สลับเครือข่าย
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem onClick={() => switchNetwork(1)}>
+                  Ethereum Mainnet
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => switchNetwork(11155111)}>
+                  Sepolia Testnet
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => switchNetwork(10143)}>
+                  Monad Testnet
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuItem
+              className="flex gap-2"
+              onClick={() => {
+                disconnect();
+                toast.success("ออกจากระบบแล้ว", {
+                  description:
+                    "ออกจากระบบสำเร็จแล้ว คุณสามารถเชื่อมต่อใหม่ได้ทุกเมื่อ",
+                });
+              }}
+            >
+              <LogOut className="h-4 w-4" />
+              ออกจากระบบ
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <>
+            <DropdownMenuItem onClick={handleConnect} className="flex gap-2">
+              <Wallet className="h-4 w-4" />
+              เชื่อมต่อกระเป๋าเงิน
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="flex gap-2"
+              onClick={toggleSimulationMode}
+            >
+              <Cpu className="h-4 w-4" />
+              {simulation ? "ปิดโหมดจำลอง" : "เปิดโหมดจำลอง"}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => window.open("https://metamask.io/", "_blank")}
+              className="flex gap-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              ติดตั้ง MetaMask
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

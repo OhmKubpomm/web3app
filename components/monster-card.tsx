@@ -380,198 +380,216 @@ export default function MonsterCard({
     };
   };
 
-  // จัดการเมื่อมอนสเตอร์ตาย
+  // ฟังก์ชันจัดการเมื่อมอนสเตอร์ถูกกำจัด
   const handleMonsterDefeat = async () => {
-    if (monsterDefeated || !currentMonster) return;
+    if (monsterDefeated) return;
 
     setMonsterDefeated(true);
-    const actualAddress = address || wagmiAddress;
 
-    // รับรางวัลและประสบการณ์
-    const reward = currentMonster.reward;
-    const xp = currentMonster.xp;
+    // กำหนดรางวัลและประสบการณ์
+    const reward = currentMonster?.reward || 0;
+    const xp = currentMonster?.xp || 0;
 
-    onDefeat(reward);
+    // แสดงรางวัล
     setRewardValue(reward);
-    setXpValue(xp);
     setShowReward(true);
+    setXpValue(xp);
 
-    // ถ้ามีตัวละคร ให้เพิ่มประสบการณ์
-    if (
-      gameData.characters &&
-      gameData.characters.length > 0 &&
-      actualAddress
-    ) {
-      const mainCharacter = gameData.characters[0];
+    // อัพเดทเหรียญ
+    onDefeat(reward);
 
+    // สุ่มไอเทม (30% โอกาสที่จะได้)
+    const gotItem = Math.random() < 0.3;
+    if (gotItem && onItemFound) {
+      const randomItem = generateRandomItem();
+      setFoundItem(randomItem);
+      onItemFound();
+    }
+
+    // สร้างเอฟเฟกต์คอนเฟตติ
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+    });
+
+    // เพิ่มประสบการณ์ให้ตัวละคร
+    if (onExperienceGained && gameData?.characters?.length > 0) {
+      // เพิ่มประสบการณ์ให้ตัวละครตัวแรก
+      const characterId = gameData.characters[0].id;
+      onExperienceGained(characterId, xp);
+
+      // ถ้ามีการเชื่อมต่อกับ blockchain ให้เรียกฟังก์ชันเพิ่มประสบการณ์
       try {
-        // เรียกใช้ฟังก์ชันเพิ่มประสบการณ์จาก contract
-        const expResult = await gainExperience(mainCharacter.id, xp);
-
-        // ถ้ามีการเลเวลอัพ
-        if (expResult && expResult.newLevel) {
-          // แสดง confetti
-          if (containerRef.current) {
-            confetti({
-              particleCount: 150,
-              spread: 70,
-              origin: {
-                x: 0.5,
-                y: 0.5,
-              },
-              zIndex: 999,
-            });
-          }
-
-          // แสดงข้อความเลเวลอัพ
-          toast.success(locale === "th" ? "เลเวลอัพ!" : "Level Up!", {
-            description:
-              locale === "th"
-                ? `${mainCharacter.name} เลเวลอัพเป็นระดับ ${
-                    mainCharacter.level + 1
-                  }!`
-                : `${mainCharacter.name} leveled up to level ${
-                    mainCharacter.level + 1
-                  }!`,
-            position: "top-center",
-          });
-        }
-
-        // ส่งข้อมูลประสบการณ์กลับไปยัง parent component
-        if (onExperienceGained) {
-          onExperienceGained(mainCharacter.id, xp);
-        }
+        await gainExperience(characterId, xp);
       } catch (error) {
         console.error("Error gaining experience:", error);
       }
     }
 
-    // บันทึกการต่อสู้
+    // บันทึกข้อมูลการต่อสู้
+    const actualAddress = wagmiAddress || address;
     if (actualAddress) {
-      recordBattle(actualAddress, {
-        monstersDefeated: 1,
-        coinsEarned: reward,
-        itemsFound: 0,
-        xpGained: xp,
-      }).catch((err) => console.error("Error recording battle:", err));
-    }
-
-    // สุ่มไอเทม (โอกาส 15%)
-    if (Math.random() < 0.15) {
-      const item = generateRandomItem();
-      setFoundItem(item);
-      if (onItemFound) onItemFound();
-
-      // เล่นเอฟเฟกต์ confetti
-      if (containerRef.current) {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: {
-            x: 0.5,
-            y: 0.5,
-          },
+      try {
+        await recordBattle(actualAddress, {
+          monstersDefeated: 1,
+          coinsEarned: reward,
+          itemsFound: gotItem ? 1 : 0,
+          xpGained: xp,
         });
+      } catch (err) {
+        console.error("Error recording battle:", err);
       }
-
-      toast.success(locale === "th" ? "พบไอเทม!" : "Item found!", {
-        description:
-          locale === "th"
-            ? `คุณได้รับ ${item.name}`
-            : `You received ${item.name}`,
-        position: "top-right",
-      });
-    } else {
-      // สร้างมอนสเตอร์ใหม่หลังจาก 2 วินาที
-      const timeout = setTimeout(() => {
-        spawnMonster();
-      }, 2000);
-
-      setSpawnTimeout(timeout);
     }
+
+    // ซ่อนรางวัลหลังจาก 1.5 วินาที
+    setTimeout(() => {
+      setShowReward(false);
+    }, 1500);
+
+    // สร้างมอนสเตอร์ใหม่หลังจาก 2 วินาที
+    const timeout = setTimeout(() => {
+      setMonsterDefeated(false);
+      spawnMonster();
+    }, 2000);
+
+    setSpawnTimeout(timeout);
   };
 
-  // ฟังก์ชันโจมตี
-  const handleAttack = async () => {
-    if (
-      isAttacking ||
-      isProcessing ||
-      monsterHP <= 0 ||
-      !currentMonster ||
-      !mounted ||
-      monsterDefeated
-    )
-      return;
+  // ฟังก์ชันสร้างสีของมอนสเตอร์ตาม color property
+  const getMonsterColor = (opacity = 1) => {
+    if (!currentMonster) return `rgba(128, 128, 128, ${opacity})`;
+    
+    const colorMap: Record<string, string> = {
+      green: `rgba(0, 128, 0, ${opacity})`,
+      red: `rgba(200, 0, 0, ${opacity})`,
+      blue: `rgba(0, 0, 200, ${opacity})`,
+      purple: `rgba(128, 0, 128, ${opacity})`,
+      yellow: `rgba(200, 200, 0, ${opacity})`,
+      gray: `rgba(128, 128, 128, ${opacity})`,
+      brown: `rgba(139, 69, 19, ${opacity})`,
+      black: `rgba(30, 30, 30, ${opacity})`,
+      beige: `rgba(245, 222, 179, ${opacity})`,
+      orange: `rgba(255, 140, 0, ${opacity})`,
+    };
+    
+    return colorMap[currentMonster.color.toLowerCase()] || `rgba(128, 128, 128, ${opacity})`;
+  };
 
-    const actualAddress = address || wagmiAddress;
-    if (!actualAddress) {
-      toast.error(
-        locale === "th"
-          ? "กรุณาเชื่อมต่อกระเป๋าก่อน"
-          : "Please connect your wallet first",
-        {
-          position: "top-right",
-        }
-      );
-      return;
-    }
+  // ฟังก์ชันโจมตีมอนสเตอร์
+  const handleAttack = async () => {
+    if (isAttacking || !currentMonster || monsterHP <= 0 || isProcessing) return;
 
     setIsAttacking(true);
 
-    // สร้าง particles
-    createParticles(10);
-
     try {
-      // เรียกใช้ฟังก์ชัน attackMonster จาก contract
-      const result = await attackMonster(currentMonster.id);
+      // สร้างเอฟเฟคการโจมตี
+      if (monsterRef.current) {
+        monsterRef.current.classList.add("animate-attack");
+        setTimeout(() => {
+          monsterRef.current?.classList.remove("animate-attack");
+        }, 500);
+      }
 
-      if (result) {
-        // แสดงดาเมจ
-        setDamageValue(result.damage);
-        setShowDamage(true);
+      // คำนวณความเสียหาย
+      let playerDamage = gameData?.damage || 1;
+      
+      // โอกาสคริติคอล 10%
+      const isCritical = Math.random() < (gameData?.critChance || 0.1);
+      if (isCritical) {
+        playerDamage = Math.floor(playerDamage * 2); // คริติคอลดาเมจ x2
+      }
 
-        // ลด HP มอนสเตอร์
-        const newHP = Math.max(0, monsterHP - result.damage);
-        setMonsterHP(newHP);
+      // สร้างเอฟเฟคเปลี่ยนแปลง HP
+      setDamageValue(playerDamage);
+      setShowDamage(true);
 
-        // ตรวจสอบว่ามอนสเตอร์ตายหรือไม่
-        if (newHP <= 0 || result.defeated) {
-          handleMonsterDefeat();
-        }
-      } else {
-        // ถ้าไม่มีผลลัพธ์จาก contract ให้ใช้ค่าเริ่มต้น
-        const damage = gameData?.damage || 1;
-        setDamageValue(damage);
-        setShowDamage(true);
+      // คลาสสำหรับแสดงดาเมจ
+      const damageClass = isCritical ? "critical-text" : "damage-text";
+      
+      // แสดงเอฟเฟคดาเมจบนมอนสเตอร์
+      if (containerRef.current) {
+        const damageEl = document.createElement("div");
+        damageEl.textContent = playerDamage.toString();
+        damageEl.className = damageClass;
+        
+        // สุ่มตำแหน่งแสดงดาเมจ
+        const xPos = Math.random() * 40 - 20;
+        damageEl.style.left = `calc(50% + ${xPos}px)`;
+        damageEl.style.top = "40%";
+        containerRef.current.appendChild(damageEl);
+        
+        // ลบเอลิเมนต์หลังจากแอนิเมชันจบ
+        setTimeout(() => {
+          damageEl.remove();
+        }, 1500);
+      }
 
-        // ลด HP มอนสเตอร์
-        const newHP = Math.max(0, monsterHP - damage);
-        setMonsterHP(newHP);
+      // สร้างเอฟเฟคพาร์ติเคิล
+      createParticles(isCritical ? 20 : 10);
+      
+      // ถ้าคริติคอล ให้สั่นมอนสเตอร์
+      if (isCritical && monsterRef.current) {
+        monsterRef.current.classList.add("animate-shake");
+        setTimeout(() => {
+          monsterRef.current?.classList.remove("animate-shake");
+        }, 500);
+      }
 
-        // ตรวจสอบว่ามอนสเตอร์ตายหรือไม่
-        if (newHP <= 0) {
-          handleMonsterDefeat();
+      // ใช้ Web3 contract เพื่อโจมตีมอนสเตอร์
+      const actualAddress = wagmiAddress || address;
+      if (actualAddress) {
+        const attackResult = await attackMonster(currentMonster.id);
+        
+        if (attackResult) {
+          // ลด HP มอนสเตอร์
+          const newHP = Math.max(0, monsterHP - playerDamage);
+          setMonsterHP(newHP);
+          
+          // บันทึกประวัติการต่อสู้
+          try {
+            await recordBattle({
+              playerAddress: actualAddress,
+              battleData: {
+                monsterId: currentMonster.id,
+                damage: playerDamage,
+                wasDefeated: newHP <= 0,
+                area: gameData?.currentArea || "forest",
+                timestamp: Date.now()
+              }
+            });
+          } catch (err) {
+            console.error("Error recording battle:", err);
+          }
+          
+          // ตรวจสอบว่ามอนสเตอร์ตายหรือไม่
+          if (newHP <= 0) {
+            handleMonsterDefeat();
+          }
         }
       }
+
+      // ซ่อนดาเมจหลังจาก 1 วินาที
+      setTimeout(() => {
+        setShowDamage(false);
+      }, 1000);
     } catch (error) {
       console.error("Error attacking monster:", error);
       toast.error(
         locale === "th"
-          ? "ไม่สามารถโจมตีมอนสเตอร์ได้"
-          : "Failed to attack monster",
+          ? "เกิดข้อผิดพลาดในการโจมตี"
+          : "Error attacking monster",
         {
           description:
-            locale === "th" ? "กรุณาลองใหม่อีกครั้ง" : "Please try again",
+            locale === "th"
+              ? "กรุณาลองใหม่อีกครั้ง"
+              : "Please try again later",
           position: "top-right",
         }
       );
-    }
-
-    // ซ่อนดาเมจหลังจาก 1 วินาที
-    setTimeout(() => {
-      setShowDamage(false);
+    } finally {
       setIsAttacking(false);
-    }, 1000);
+    }
   };
 
   // ฟังก์ชันโจมตีหลายครั้ง
@@ -679,34 +697,6 @@ export default function MonsterCard({
     setFoundItem(null);
     setShowReward(false);
     spawnMonster();
-  };
-
-  // สร้างสีตามประเภทมอนสเตอร์
-  const getMonsterColor = (opacity = 1) => {
-    if (!currentMonster) return `rgba(147, 51, 234, ${opacity})`;
-
-    switch (currentMonster.color) {
-      case "green":
-        return `rgba(22, 163, 74, ${opacity})`;
-      case "gray":
-        return `rgba(107, 114, 128, ${opacity})`;
-      case "purple":
-        return `rgba(147, 51, 234, ${opacity})`;
-      case "black":
-        return `rgba(31, 41, 55, ${opacity})`;
-      case "brown":
-        return `rgba(180, 83, 9, ${opacity})`;
-      case "red":
-        return `rgba(220, 38, 38, ${opacity})`;
-      case "yellow":
-        return `rgba(202, 138, 4, ${opacity})`;
-      case "beige":
-        return `rgba(245, 158, 11, ${opacity})`;
-      case "orange":
-        return `rgba(234, 88, 12, ${opacity})`;
-      default:
-        return `rgba(147, 51, 234, ${opacity})`;
-    }
   };
 
   // ถ้าไม่มีข้อมูลเกม ให้แสดงข้อความโหลด

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,6 +21,7 @@ import LanguageSwitcher from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useWeb3 } from "@/lib/web3-client";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/lib/i18n";
 
 interface GameHeaderProps {
   gameData: any;
@@ -30,6 +31,13 @@ export default function GameHeader({ gameData }: GameHeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { isConnected, disconnect } = useWeb3();
   const router = useRouter();
+  const { locale } = useI18n();
+  const [mounted, setMounted] = useState(false);
+
+  // ตรวจสอบว่าอยู่ใน client side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // ฟังก์ชันตัดการเชื่อมต่อและกลับไปหน้าแรก
   const handleLogout = () => {
@@ -37,19 +45,25 @@ export default function GameHeader({ gameData }: GameHeaderProps) {
     router.push("/");
   };
 
+  if (!mounted) {
+    return null; // ไม่แสดงอะไรระหว่างการโหลด
+  }
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-purple-500/20">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <Image
-            src="/placeholder-icon.svg"
-            alt="Logo"
-            width={36}
-            height={36}
-          />
+          <div className="relative w-9 h-9 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-white font-bold text-lg">W3</span>
+            <motion.div
+              className="absolute inset-0 rounded-full border border-purple-400"
+              animate={{ scale: [1, 1.1, 1], opacity: [0.7, 0.2, 0.7] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+          </div>
           <span className="font-bold text-lg hidden md:inline">
-            Web3 Adventure
+            {locale === "th" ? "ผจญภัยบล็อกเชน" : "Web3 Adventure"}
           </span>
         </Link>
 
@@ -74,7 +88,9 @@ export default function GameHeader({ gameData }: GameHeaderProps) {
             <div className="flex flex-col h-full">
               {/* Mobile Menu Header */}
               <div className="p-4 border-b border-purple-500/20 flex items-center justify-between">
-                <h2 className="font-bold text-lg">Web3 Adventure</h2>
+                <h2 className="font-bold text-lg">
+                  {locale === "th" ? "ผจญภัยบล็อกเชน" : "Web3 Adventure"}
+                </h2>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -107,7 +123,7 @@ export default function GameHeader({ gameData }: GameHeaderProps) {
                   >
                     <Link href="/dashboard">
                       <Home className="mr-2 h-5 w-5" />
-                      หน้าหลัก
+                      {locale === "th" ? "หน้าหลัก" : "Home"}
                     </Link>
                   </Button>
                   <Button
@@ -117,7 +133,7 @@ export default function GameHeader({ gameData }: GameHeaderProps) {
                   >
                     <Link href="/leaderboard">
                       <Trophy className="mr-2 h-5 w-5" />
-                      จัดอันดับ
+                      {locale === "th" ? "จัดอันดับ" : "Leaderboard"}
                     </Link>
                   </Button>
                   <Button
@@ -127,7 +143,7 @@ export default function GameHeader({ gameData }: GameHeaderProps) {
                   >
                     <Link href="/settings">
                       <Settings className="mr-2 h-5 w-5" />
-                      ตั้งค่า
+                      {locale === "th" ? "ตั้งค่า" : "Settings"}
                     </Link>
                   </Button>
                   <Button
@@ -137,7 +153,7 @@ export default function GameHeader({ gameData }: GameHeaderProps) {
                   >
                     <Link href="/help">
                       <HelpCircle className="mr-2 h-5 w-5" />
-                      ช่วยเหลือ
+                      {locale === "th" ? "ช่วยเหลือ" : "Help"}
                     </Link>
                   </Button>
                 </div>
@@ -145,11 +161,15 @@ export default function GameHeader({ gameData }: GameHeaderProps) {
                 {/* Settings */}
                 <div className="px-4 space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-400">ธีม</span>
+                    <span className="text-sm text-gray-400">
+                      {locale === "th" ? "ธีม" : "Theme"}
+                    </span>
                     <ThemeToggle />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-400">ภาษา</span>
+                    <span className="text-sm text-gray-400">
+                      {locale === "th" ? "ภาษา" : "Language"}
+                    </span>
                     <LanguageSwitcher />
                   </div>
                 </div>
@@ -164,7 +184,7 @@ export default function GameHeader({ gameData }: GameHeaderProps) {
                     onClick={handleLogout}
                   >
                     <LogOut className="mr-2 h-5 w-5" />
-                    ออกจากระบบ
+                    {locale === "th" ? "ออกจากระบบ" : "Logout"}
                   </Button>
                 )}
               </div>

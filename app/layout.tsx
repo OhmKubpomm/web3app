@@ -15,7 +15,6 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Adventure Clicker - Web3 Game",
   description: "เกมคลิกเกอร์ผจญภัยบน Blockchain",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
 };
 export const viewport: Viewport = {
   width: "device-width",
@@ -37,10 +36,11 @@ export default function RootLayout({
         <link
           rel="preconnect"
           href="https://fonts.gstatic.com"
-          crossOrigin=""
+          crossOrigin="anonymous"
         />
       </head>
       <body
+        suppressHydrationWarning
         className={`${inter.className} min-h-screen bg-gradient-to-b from-gray-900 to-black text-white`}
       >
         <Providers>{children}</Providers>

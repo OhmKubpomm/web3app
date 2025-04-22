@@ -3,54 +3,52 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
-    using Strings for uint256;
-
     // ค่าคงที่
-    uint256 public constant ATTACK_COOLDOWN = 1 seconds; // ระยะเวลาระหว่างการโจมตี
-    uint256 public constant ITEM_DROP_CHANCE = 10; // โอกาสในการดรอปไอเทม (10%)
-    uint256 public constant MAX_LEVEL = 100; // เลเวลสูงสุด
-    uint256 public constant MAX_MULTI_ATTACK = 100; // จำนวนการโจมตีสูงสุดในครั้งเดียว
+    uint8 private constant ATTACK_COOLDOWN = 1; // 1 วินาที
+    uint8 private constant ITEM_DROP_CHANCE = 10; // 10%
+    uint8 private constant MAX_LEVEL = 100;
+    uint8 private constant MAX_MULTI_ATTACK = 100;
+    uint8 private constant BATCH_MINT_LIMIT = 10;
 
-    // โครงสร้างข้อมูล
+    // โครงสร้างข้อมูลที่ปรับปรุงให้กระชับขึ้น
     struct Player {
-        uint256 coins;
-        uint256 damage;
-        uint256 autoDamage;
-        uint256 lastAttackTime;
-        uint256 monstersDefeated;
+        uint128 coins;
+        uint32 damage;
+        uint32 autoDamage;
+        uint32 lastAttackTime;
+        uint32 monstersDefeated;
         string currentArea;
         bool exists;
     }
 
     struct Monster {
-        uint256 id;
+        uint16 id;
         string name;
-        uint256 hp;
-        uint256 maxHp;
-        uint256 reward;
+        uint32 hp;
+        uint32 maxHp;
+        uint32 reward;
         string monsterType;
     }
 
     struct Character {
-        uint256 id;
+        uint16 id;
         string name;
-        uint256 level;
-        uint256 damage;
-        uint256 defense;
-        uint256 cost;
+        uint8 level;
+        uint32 damage;
+        uint32 defense;
+        uint32 cost;
     }
 
     struct Item {
-        uint256 id;
+        uint16 id;
         string name;
-        string itemType; // weapon, armor, accessory
-        string rarity; // common, uncommon, rare, epic, legendary
-        uint256 power;
-        uint256 price;
+        string itemType;
+        string rarity;
+        uint32 power;
+        uint32 price;
     }
 
     // ตัวแปรสถานะ
@@ -62,11 +60,10 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
     mapping(address => Item[]) private playerItems;
     mapping(uint256 => uint256) public tokenToItem;
     
-    uint256 private nextMonsterId = 1;
-    uint256 private nextCharacterId = 1;
-    uint256 private nextItemId = 1;
-    uint256 private nextTokenId = 1;
-    string private baseURI;
+    uint16 private nextMonsterId = 1;
+    uint16 private nextCharacterId = 1;
+    uint16 private nextItemId = 1;
+    uint16 private nextTokenId = 1;
 
     // Events
     event AttackPerformed(address indexed player, uint256 indexed monsterId, uint256 damage, bool defeated);
@@ -78,14 +75,12 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
     event AreaChanged(address indexed player, string newArea);
     event PlayerRegistered(address indexed player);
     event NFTMinted(address indexed player, uint256 indexed tokenId, uint256 itemId);
+    event BatchNFTMinted(address indexed player, uint256[] tokenIds);
 
     // Constructor
     constructor(address initialOwner) ERC721("AdventureItems", "ADVITM") Ownable(initialOwner) {
         // เพิ่มพื้นที่เริ่มต้น
-        areas.push("Forest");
-        areas.push("Cave");
-        areas.push("Mountain");
-        areas.push("Castle");
+        areas = ["Forest", "Cave", "Mountain", "Castle"];
         
         // เพิ่มมอนสเตอร์เริ่มต้น
         _addMonster(1, "Slime", 10, 5, "Normal", "Forest");
@@ -97,53 +92,29 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
         _addMonster(7, "Dragon", 200, 100, "Dragon", "Mountain");
         _addMonster(8, "Knight", 150, 75, "Human", "Castle");
         _addMonster(9, "Wizard", 120, 60, "Human", "Castle");
-        _addMonster(10, "Demon Lord", 500, 250, "Demon", "Castle");
+        _addMonster(10, "Demon", 500, 250, "Demon", "Castle");
     }
 
     // Modifiers
     modifier playerExists() {
-        require(players[msg.sender].exists, "Player does not exist");
+        require(players[msg.sender].exists, "No player");
         _;
     }
 
     modifier monsterExists(uint256 monsterId) {
-        require(monsters[monsterId].id > 0, "Monster does not exist");
-        _;
-    }
-
-    modifier characterExists(uint256 characterId) {
-        bool found = false;
-        for (uint256 i = 0; i < playerCharacters[msg.sender].length; i++) {
-            if (playerCharacters[msg.sender][i].id == characterId) {
-                found = true;
-                break;
-            }
-        }
-        require(found, "Character does not exist");
-        _;
-    }
-
-    modifier itemExists(uint256 itemId) {
-        bool found = false;
-        for (uint256 i = 0; i < playerItems[msg.sender].length; i++) {
-            if (playerItems[msg.sender][i].id == itemId) {
-                found = true;
-                break;
-            }
-        }
-        require(found, "Item does not exist");
+        require(monsters[monsterId].id > 0, "No monster");
         _;
     }
 
     // ฟังก์ชันสำหรับผู้เล่น
-    function registerPlayer() external returns (bool success) {
-        require(!players[msg.sender].exists, "Player already exists");
+    function registerPlayer() external returns (bool) {
+        require(!players[msg.sender].exists, "Already exists");
         
         players[msg.sender] = Player({
             coins: 0,
             damage: 1,
             autoDamage: 0,
-            lastAttackTime: block.timestamp,
+            lastAttackTime: uint32(block.timestamp),
             monstersDefeated: 0,
             currentArea: "Forest",
             exists: true
@@ -164,7 +135,7 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
     }
 
     function attack(uint256 monsterId) external playerExists monsterExists(monsterId) returns (uint256 damage, bool defeated, uint256 reward) {
-        require(block.timestamp >= players[msg.sender].lastAttackTime + ATTACK_COOLDOWN, "Attack on cooldown");
+        require(block.timestamp >= players[msg.sender].lastAttackTime + ATTACK_COOLDOWN, "Cooldown");
         
         Player storage player = players[msg.sender];
         Monster storage monster = monsters[monsterId];
@@ -177,13 +148,13 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
                 break;
             }
         }
-        require(monsterInArea, "Monster not in current area");
+        require(monsterInArea, "Not in area");
         
         // คำนวณความเสียหาย
         damage = player.damage;
         
         // อัพเดตเวลาโจมตีล่าสุด
-        player.lastAttackTime = block.timestamp;
+        player.lastAttackTime = uint32(block.timestamp);
         
         // ตรวจสอบว่ามอนสเตอร์พ่ายแพ้หรือไม่
         if (damage >= monster.hp) {
@@ -192,7 +163,7 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
             reward = monster.reward;
             
             // เพิ่มเหรียญและจำนวนมอนสเตอร์ที่พ่ายแพ้
-            player.coins += reward;
+            player.coins += uint128(reward);
             player.monstersDefeated++;
             
             // รีเซ็ต HP ของมอนสเตอร์
@@ -210,33 +181,37 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
             reward = 0;
             
             // ลด HP ของมอนสเตอร์
-            monster.hp -= damage;
+            monster.hp -= uint32(damage);
         }
         
         emit AttackPerformed(msg.sender, monsterId, damage, defeated);
         return (damage, defeated, reward);
     }
 
-    function multiAttack(uint256 attackCount) external playerExists returns (uint256 totalDamage, uint256 monstersDefeated, uint256 totalReward) {
-        require(attackCount > 0 && attackCount <= MAX_MULTI_ATTACK, "Invalid attack count");
-        require(block.timestamp >= players[msg.sender].lastAttackTime + ATTACK_COOLDOWN, "Attack on cooldown");
+    // ฟังก์ชันโจมตีหลายครั้งที่ปรับปรุงแล้ว - ลดการใช้ gas
+    function multiAttack(uint256 attackCount) external playerExists nonReentrant returns (uint256 totalDamage, uint256 monstersDefeated, uint256 totalReward) {
+        require(attackCount > 0 && attackCount <= MAX_MULTI_ATTACK, "Invalid count");
+        require(block.timestamp >= players[msg.sender].lastAttackTime + ATTACK_COOLDOWN, "Cooldown");
         
         Player storage player = players[msg.sender];
         
         // ค้นหามอนสเตอร์ในพื้นที่ปัจจุบัน
         uint256[] memory monsterIds = areaMonsters[player.currentArea];
-        require(monsterIds.length > 0, "No monsters in current area");
+        require(monsterIds.length > 0, "No monsters");
         
         totalDamage = 0;
         monstersDefeated = 0;
         totalReward = 0;
         
         // อัพเดตเวลาโจมตีล่าสุด
-        player.lastAttackTime = block.timestamp;
+        player.lastAttackTime = uint32(block.timestamp);
+        
+        // ใช้ seed เดียวสำหรับการสุ่มทั้งหมดเพื่อประหยัด gas
+        uint256 randomSeed = uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender)));
         
         for (uint256 i = 0; i < attackCount; i++) {
             // เลือกมอนสเตอร์แบบสุ่ม
-            uint256 randomIndex = uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender, i))) % monsterIds.length;
+            uint256 randomIndex = uint256(keccak256(abi.encodePacked(randomSeed, i))) % monsterIds.length;
             uint256 monsterId = monsterIds[randomIndex];
             Monster storage monster = monsters[monsterId];
             
@@ -250,30 +225,28 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
                 monstersDefeated++;
                 totalReward += monster.reward;
                 
-                // เพิ่มเหรียญและจำนวนมอนสเตอร์ที่พ่ายแพ้
-                player.coins += monster.reward;
-                player.monstersDefeated++;
-                
                 // รีเซ็ต HP ของมอนสเตอร์
                 monster.hp = monster.maxHp;
                 
                 // มีโอกาสได้รับไอเทม
-                if (uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender, monsterId, i))) % 100 < ITEM_DROP_CHANCE) {
+                if (uint256(keccak256(abi.encodePacked(randomSeed, i, monsterId))) % 100 < ITEM_DROP_CHANCE) {
                     _generateRandomItem();
                 }
-                
-                emit MonsterDefeated(msg.sender, monsterId, monster.reward);
             } else {
                 // มอนสเตอร์ยังไม่พ่ายแพ้
-                monster.hp -= damage;
+                monster.hp -= uint32(damage);
             }
         }
+        
+        // เพิ่มเหรียญและจำนวนมอนสเตอร์ที่พ่ายแพ้
+        player.coins += uint128(totalReward);
+        player.monstersDefeated += uint32(monstersDefeated);
         
         emit MultiAttackPerformed(msg.sender, attackCount, totalDamage, monstersDefeated);
         return (totalDamage, monstersDefeated, totalReward);
     }
 
-    function changeArea(string calldata newArea) external playerExists returns (bool success) {
+    function changeArea(string calldata newArea) external playerExists returns (bool) {
         bool areaExists = false;
         for (uint256 i = 0; i < areas.length; i++) {
             if (keccak256(bytes(areas[i])) == keccak256(bytes(newArea))) {
@@ -281,7 +254,7 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
                 break;
             }
         }
-        require(areaExists, "Area does not exist");
+        require(areaExists, "No area");
         
         players[msg.sender].currentArea = newArea;
         
@@ -289,71 +262,28 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
         return true;
     }
 
-    function purchaseCharacter(string calldata characterName) external playerExists returns (uint256 characterId) {
+    function upgradeCharacter(uint256 characterId) external playerExists returns (uint256 newLevel, uint256 cost) {
         Player storage player = players[msg.sender];
         
-        uint256 cost = 0;
-        uint256 damage = 0;
-        uint256 defense = 0;
-        
-        if (keccak256(bytes(characterName)) == keccak256(bytes("Warrior"))) {
-            cost = 100;
-            damage = 5;
-            defense = 5;
-        } else if (keccak256(bytes(characterName)) == keccak256(bytes("Mage"))) {
-            cost = 150;
-            damage = 8;
-            defense = 2;
-        } else if (keccak256(bytes(characterName)) == keccak256(bytes("Archer"))) {
-            cost = 120;
-            damage = 6;
-            defense = 3;
-        } else {
-            revert("Invalid character name");
-        }
-        
-        require(player.coins >= cost, "Not enough coins");
-        
-        // หักเหรียญ
-        player.coins -= cost;
-        
-        // เพิ่มตัวละคร
-        characterId = nextCharacterId++;
-        playerCharacters[msg.sender].push(Character({
-            id: characterId,
-            name: characterName,
-            level: 1,
-            damage: damage,
-            defense: defense,
-            cost: cost
-        }));
-        
-        // อัพเดตพลังโจมตีของผู้เล่น
-        player.damage += damage;
-        
-        emit CharacterPurchased(msg.sender, characterId, characterName, cost);
-        return characterId;
-    }
-
-    function upgradeCharacter(uint256 characterId) external playerExists characterExists(characterId) returns (uint256 newLevel, uint256 cost) {
-        Player storage player = players[msg.sender];
-        
-        Character storage character;
+        // ค้นหาตัวละคร
+        uint256 charIndex = type(uint256).max;
         for (uint256 i = 0; i < playerCharacters[msg.sender].length; i++) {
             if (playerCharacters[msg.sender][i].id == characterId) {
-                character = playerCharacters[msg.sender][i];
+                charIndex = i;
                 break;
             }
         }
+        require(charIndex != type(uint256).max, "No character");
         
-        require(character.level < MAX_LEVEL, "Character already at max level");
+        Character storage character = playerCharacters[msg.sender][charIndex];
+        require(character.level < MAX_LEVEL, "Max level");
         
         // คำนวณค่าใช้จ่ายในการอัพเกรด
         cost = character.cost * (character.level + 1);
         require(player.coins >= cost, "Not enough coins");
         
         // หักเหรียญ
-        player.coins -= cost;
+        player.coins -= uint128(cost);
         
         // อัพเกรดตัวละคร
         character.level++;
@@ -367,14 +297,18 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
         return (character.level, cost);
     }
 
-    function mintItemNFT(uint256 itemId) external playerExists itemExists(itemId) returns (uint256 tokenId) {
-        Item storage item;
+    function mintItemNFT(uint256 itemId) external playerExists returns (uint256 tokenId) {
+        // ค้นหาไอเทม
+        uint256 itemIndex = type(uint256).max;
         for (uint256 i = 0; i < playerItems[msg.sender].length; i++) {
             if (playerItems[msg.sender][i].id == itemId) {
-                item = playerItems[msg.sender][i];
+                itemIndex = i;
                 break;
             }
         }
+        require(itemIndex != type(uint256).max, "No item");
+        
+        Item storage item = playerItems[msg.sender][itemIndex];
         
         tokenId = nextTokenId++;
         _mint(msg.sender, tokenId);
@@ -386,7 +320,7 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
             '"attributes":[',
             '{"trait_type":"Type","value":"', item.itemType, '"},',
             '{"trait_type":"Rarity","value":"', item.rarity, '"},',
-            '{"trait_type":"Power","value":', item.power.toString(), '}',
+            '{"trait_type":"Power","value":', _uint2str(item.power), '}',
             ']}'
         ));
         
@@ -431,42 +365,37 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
     // ฟังก์ชันสำหรับเจ้าของ contract
     function addArea(string calldata areaName) external onlyOwner {
         for (uint256 i = 0; i < areas.length; i++) {
-            require(keccak256(bytes(areas[i])) != keccak256(bytes(areaName)), "Area already exists");
+            require(keccak256(bytes(areas[i])) != keccak256(bytes(areaName)), "Area exists");
         }
         
         areas.push(areaName);
     }
 
     function addMonster(
-        uint256 id,
+        uint16 id,
         string calldata name,
-        uint256 hp,
-        uint256 reward,
+        uint32 hp,
+        uint32 reward,
         string calldata monsterType,
         string calldata area
     ) external onlyOwner {
         _addMonster(id, name, hp, reward, monsterType, area);
     }
 
-    function setBaseURI(string calldata baseURI_) external onlyOwner {
-        baseURI = baseURI_;
-    }
-
-    function withdraw(uint256 amount) external onlyOwner {
-        require(amount <= address(this).balance, "Insufficient balance");
-        payable(owner()).transfer(amount);
+    function withdraw() external onlyOwner {
+        payable(owner()).transfer(address(this).balance);
     }
 
     // ฟังก์ชันภายใน
     function _addMonster(
-        uint256 id,
+        uint16 id,
         string memory name,
-        uint256 hp,
-        uint256 reward,
+        uint32 hp,
+        uint32 reward,
         string memory monsterType,
         string memory area
     ) internal {
-        require(monsters[id].id == 0, "Monster ID already exists");
+        require(monsters[id].id == 0, "Monster exists");
         
         bool areaExists = false;
         for (uint256 i = 0; i < areas.length; i++) {
@@ -475,7 +404,7 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
                 break;
             }
         }
-        require(areaExists, "Area does not exist");
+        require(areaExists, "No area");
         
         monsters[id] = Monster({
             id: id,
@@ -506,14 +435,14 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
         string memory rarity = rarities[rarityIndex];
         
         // คำนวณพลังและราคาตามความหายาก
-        uint256 power = (rarityIndex + 1) * 5;
-        uint256 price = (rarityIndex + 1) * 50;
+        uint32 power = uint32((rarityIndex + 1) * 5);
+        uint32 price = uint32((rarityIndex + 1) * 50);
         
         // สร้างชื่อไอเทม
         string memory name = string(abi.encodePacked(rarity, " ", itemType));
         
         // เพิ่มไอเทม
-        uint256 itemId = nextItemId++;
+        uint16 itemId = nextItemId++;
         playerItems[msg.sender].push(Item({
             id: itemId,
             name: name,
@@ -526,12 +455,31 @@ contract AdventureClicker is ERC721URIStorage, Ownable, ReentrancyGuard {
         emit ItemFound(msg.sender, itemId, name, rarity);
     }
 
+    // ฟังก์ชันช่วยเหลือ
+    function _uint2str(uint256 value) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
+    }
+
     function _base64Encode(bytes memory data) internal pure returns (string memory) {
         string memory TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
         uint256 len = data.length;
         if (len == 0) return "";
 
-        // output length: 4 * ((len + 2) / 3)
         uint256 encodedLen = 4 * ((len + 2) / 3);
         string memory result = new string(encodedLen + 32);
 

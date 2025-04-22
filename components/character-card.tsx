@@ -11,6 +11,7 @@ import { upgradeCharacter } from "@/lib/actions";
 import { useWeb3 } from "@/lib/web3-client";
 import { useAccount } from "wagmi";
 import { useI18n } from "@/lib/i18n";
+import confetti from "canvas-confetti";
 
 interface CharacterCardProps {
   character: any;
@@ -75,73 +76,76 @@ export default function CharacterCard({
     setIsUpgrading(true);
 
     try {
+      // แสดงเอฟเฟกต์การอัพเกรด
+      const upgradeEffectId = toast.loading(
+        locale === "th" ? "กำลังอัพเกรด..." : "Upgrading...",
+        {
+          description:
+            locale === "th"
+              ? "กำลังเพิ่มพลังให้กับตัวละคร"
+              : "Increasing character power",
+        }
+      );
+
       // เรียกใช้ฟังก์ชัน upgradeCharacter จาก contract
-      const contractResult = await upgradeCharacterContract(character.id);
+      let contractResult;
+      try {
+        contractResult = await upgradeCharacterContract(character.id);
+      } catch (contractError) {
+        console.log(
+          "Contract upgrade failed, using API fallback:",
+          contractError
+        );
+        // ถ้าเรียก contract ไม่สำเร็จ ให้ใช้ API ปกติโดยไม่แสดงข้อผิดพลาด
+      }
 
-      if (contractResult) {
-        // อัพเดตข้อมูลในฐานข้อมูล
-        const result = await upgradeCharacter(
-          actualAddress,
-          character.id,
-          upgradeCost
+      // อัพเดตข้อมูลในฐานข้อมูล
+      const result = await upgradeCharacter(
+        actualAddress,
+        character.id,
+        upgradeCost
+      );
+
+      if (result.success) {
+        // ปิดการแสดงผลการโหลด
+        toast.success(
+          locale === "th" ? "อัพเกรดสำเร็จ" : "Upgrade successful",
+          {
+            id: upgradeEffectId,
+            description:
+              locale === "th"
+                ? `${character.name} เลเวล ${character.level} → ${
+                    character.level + 1
+                  }`
+                : `${character.name} Level ${character.level} → ${
+                    character.level + 1
+                  }`,
+          }
         );
 
-        if (result.success) {
-          toast.success(
-            locale === "th" ? "อัพเกรดสำเร็จ" : "Upgrade successful",
-            {
-              description:
-                locale === "th"
-                  ? `${character.name} เลเวล ${character.level} → ${
-                      character.level + 1
-                    }`
-                  : `${character.name} Level ${character.level} → ${
-                      character.level + 1
-                    }`,
-            }
-          );
-          onUpgrade(result.data);
-        } else {
-          toast.error(locale === "th" ? "อัพเกรดล้มเหลว" : "Upgrade failed", {
-            description:
-              result.error ||
-              (locale === "th"
-                ? "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ"
-                : "Unknown error occurred"),
+        // เพิ่มเอฟเฟกต์เมื่ออัพเกรดสำเร็จ
+        if (typeof window !== "undefined") {
+          // สร้างเอฟเฟกต์ confetti
+          const confettiColors = ["#8b5cf6", "#6366f1", "#ec4899"];
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: confettiColors,
           });
         }
+
+        // อัพเดตข้อมูลตัวละคร
+        onUpgrade(result.data);
       } else {
-        // ถ้าไม่มีผลลัพธ์จาก contract ให้ใช้ API ปกติ
-        const result = await upgradeCharacter(
-          actualAddress,
-          character.id,
-          upgradeCost
-        );
-
-        if (result.success) {
-          toast.success(
-            locale === "th" ? "อัพเกรดสำเร็จ" : "Upgrade successful",
-            {
-              description:
-                locale === "th"
-                  ? `${character.name} เลเวล ${character.level} → ${
-                      character.level + 1
-                    }`
-                  : `${character.name} Level ${character.level} → ${
-                      character.level + 1
-                    }`,
-            }
-          );
-          onUpgrade(result.data);
-        } else {
-          toast.error(locale === "th" ? "อัพเกรดล้มเหลว" : "Upgrade failed", {
-            description:
-              result.error ||
-              (locale === "th"
-                ? "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ"
-                : "Unknown error occurred"),
-          });
-        }
+        toast.error(locale === "th" ? "อัพเกรดล้มเหลว" : "Upgrade failed", {
+          id: upgradeEffectId,
+          description:
+            result.error ||
+            (locale === "th"
+              ? "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ"
+              : "Unknown error occurred"),
+        });
       }
     } catch (error) {
       console.error("Error upgrading character:", error);
@@ -181,9 +185,11 @@ export default function CharacterCard({
                     duration: 3,
                   }}
                   className={`absolute inset-0 rounded-full blur-xl ${
-                    character.level > 5
+                    character.level > 10
+                      ? "bg-red-600/30"
+                      : character.level > 7
                       ? "bg-yellow-600/30"
-                      : character.level > 3
+                      : character.level > 4
                       ? "bg-blue-600/30"
                       : "bg-purple-600/30"
                   }`}
@@ -192,9 +198,11 @@ export default function CharacterCard({
                 {/* ตัวละคร */}
                 <div
                   className={`absolute inset-0 rounded-full border-2 ${
-                    character.level > 5
+                    character.level > 10
+                      ? "border-red-500/50 bg-red-900/30"
+                      : character.level > 7
                       ? "border-yellow-500/50 bg-yellow-900/30"
-                      : character.level > 3
+                      : character.level > 4
                       ? "border-blue-500/50 bg-blue-900/30"
                       : "border-purple-500/50 bg-purple-900/30"
                   }`}
@@ -202,9 +210,11 @@ export default function CharacterCard({
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Sword
                       className={`h-10 w-10 ${
-                        character.level > 5
+                        character.level > 10
+                          ? "text-red-400"
+                          : character.level > 7
                           ? "text-yellow-400"
-                          : character.level > 3
+                          : character.level > 4
                           ? "text-blue-400"
                           : "text-purple-400"
                       }`}
@@ -240,9 +250,11 @@ export default function CharacterCard({
                           delay: i * 0.1,
                         }}
                         className={`absolute w-2 h-2 rounded-full ${
-                          character.level > 5
+                          character.level > 10
+                            ? "bg-red-400"
+                            : character.level > 7
                             ? "bg-yellow-400"
-                            : character.level > 3
+                            : character.level > 4
                             ? "bg-blue-400"
                             : "bg-purple-400"
                         }`}
@@ -277,21 +289,7 @@ export default function CharacterCard({
                     {character.experience || 0}/{character.level * 100}
                   </span>
                 </div>
-                <Progress
-                  value={xpPercent}
-                  className="h-1.5"
-                  style={
-                    {
-                      "--radix-progress-indicator-transform-origin": "0 0",
-                      backgroundColor:
-                        character.level > 5
-                          ? "linear-gradient(to right, #f59e0b, #fcd34d)"
-                          : character.level > 3
-                          ? "linear-gradient(to right, #3b82f6, #60a5fa)"
-                          : "linear-gradient(to right, #8b5cf6, #a78bfa)",
-                    } as React.CSSProperties
-                  }
-                />
+                <Progress value={xpPercent} className="h-1.5 xp-bar" />
               </div>
 
               <div className="space-y-2 mb-4">
@@ -319,8 +317,30 @@ export default function CharacterCard({
                 disabled={
                   gameData.coins < upgradeCost || isProcessing || isUpgrading
                 }
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                className={`w-full relative overflow-hidden ${
+                  gameData.coins < upgradeCost || isProcessing || isUpgrading
+                    ? "bg-gray-600"
+                    : "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                }`}
               >
+                {/* เอฟเฟกต์เมื่อปุ่มพร้อมใช้งาน */}
+                {!(
+                  gameData.coins < upgradeCost ||
+                  isProcessing ||
+                  isUpgrading
+                ) && (
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                    initial={{ x: "-100%" }}
+                    animate={{ x: "100%" }}
+                    transition={{
+                      repeat: Number.POSITIVE_INFINITY,
+                      duration: 2,
+                      ease: "linear",
+                    }}
+                  />
+                )}
+
                 <ArrowUp className="h-4 w-4 mr-1" />
                 {isUpgrading
                   ? locale === "th"

@@ -12,8 +12,13 @@ import { useAccount } from "wagmi";
 import { useI18n } from "@/lib/i18n";
 
 interface AreaSelectorProps {
-  gameData: any;
-  onAreaChange: (updatedData: any) => void;
+  gameData: {
+    currentArea?: string;
+    characters?: {
+      level: number;
+    }[];
+  };
+  onAreaChange: (updatedData: unknown) => void;
   isProcessing: boolean;
 }
 
@@ -90,6 +95,7 @@ const AREAS = {
 };
 
 // แปลงชื่อพื้นที่ภาษาไทยเป็นอังกฤษ
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const AREA_TRANSLATION: Record<string, string> = {
   ป่า: "forest",
   ถ้ำ: "cave",
@@ -106,7 +112,8 @@ export default function AreaSelector({
   onAreaChange,
   isProcessing,
 }: AreaSelectorProps) {
-  const { t, locale } = useI18n();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { locale } = useI18n();
   const { address, changeArea: changeAreaContract } = useWeb3();
   const { address: wagmiAddress } = useAccount();
   const [isChangingArea, setIsChangingArea] = useState(false);
@@ -124,7 +131,7 @@ export default function AreaSelector({
     // เช็คเลเวลขั้นต่ำ
     const area = currentAreas.find((a) => a.id === areaId);
     const playerLevel = Math.max(
-      ...(gameData?.characters?.map((c: any) => c.level) || [1])
+      ...(gameData?.characters?.map((c) => c.level) || [1])
     );
 
     if (area && playerLevel < area.level) {
@@ -249,7 +256,7 @@ export default function AreaSelector({
             const isCurrentArea = area.id === currentArea;
             const isLocked =
               Math.max(
-                ...(gameData?.characters?.map((c: any) => c.level) || [1])
+                ...(gameData?.characters?.map((c) => c.level) || [1])
               ) < area.level;
 
             return (

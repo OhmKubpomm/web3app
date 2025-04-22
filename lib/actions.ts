@@ -9,7 +9,7 @@ import {
   updateCharacter,
   updateUpgrades,
   addInventoryItem,
-  updateQuestProgress,
+  updateQuestProgress as updateQuestProgressDB,
   addBattleHistory,
   addPlayerActivity,
 } from "@/lib/supabase";
@@ -320,6 +320,56 @@ export async function updateCoins(address: string, amount: number) {
   }
 }
 
+// ฟังก์ชันสำหรับอัพเดตความคืบหน้าของภารกิจ
+export async function updateQuestProgress(
+  address: string,
+  questId: number,
+  progress: number
+) {
+  try {
+    if (!address) {
+      return { success: false, error: "Wallet address is required" };
+    }
+
+    // ค้นหาผู้เล่นจากฐานข้อมูล
+    const user = await getPlayerData(address);
+
+    if (!user) {
+      return { success: false, error: "User not found" };
+    }
+
+    // ค้นหาภารกิจ
+    const quest = user.quests?.find((q: any) => q.id === questId);
+
+    if (!quest) {
+      return { success: false, error: "Quest not found" };
+    }
+
+    // อัพเดตความคืบหน้าของภารกิจ
+    const updated = await updateQuestProgressDB(
+      questId,
+      progress,
+      progress >= quest.target
+    );
+
+    if (!updated) {
+      return { success: false, error: "Failed to update quest progress" };
+    }
+
+    // บันทึกกิจกรรมของผู้เล่น
+    await addPlayerActivity(
+      user.id,
+      "update_quest",
+      `อัพเดตความคืบหน้าภารกิจ "${quest.title}" (${progress}/${quest.target})`
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating quest progress:", error);
+    return { success: false, error: "Failed to update quest progress" };
+  }
+}
+
 // ฟังก์ชันสำหรับทำภารกิจให้สำเร็จ
 export async function completeQuest(address: string, questId: number) {
   try {
@@ -342,7 +392,7 @@ export async function completeQuest(address: string, questId: number) {
     }
 
     // อัพเดตสถานะภารกิจ
-    const updated = await updateQuestProgress(questId, quest.target, true);
+    const updated = await updateQuestProgressDB(questId, quest.target, true);
 
     if (!updated) {
       return { success: false, error: "Failed to update quest progress" };

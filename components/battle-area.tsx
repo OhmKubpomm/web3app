@@ -9,13 +9,61 @@ import { Sword, Sparkles, Coins, Heart, Zap } from "lucide-react";
 import Image from "next/image";
 import { recordBattle } from "@/lib/actions";
 import { toast } from "sonner";
-// @ts-ignore - ใช้ ts-ignore เพื่อแก้ปัญหาไม่พบ declaration file
-import confetti from "canvas-confetti";
+
+// Import confetti using require to avoid TypeScript issues
+const confetti = require('canvas-confetti');
+
+// กำหนด interface สำหรับ monster และ game data
+interface Monster {
+  name: string;
+  health: number;
+  maxHealth: number;
+  reward: number;
+  area: string;
+  background: string;
+  itemChance: number;
+  image: string;
+}
+
+interface TreasureItem {
+  name: string;
+  description: string;
+  type: string;
+  rarity: string;
+  image: string;
+}
+
+interface DamageNumber {
+  id: number;
+  value: number;
+  x: number;
+  y: number;
+  isCritical: boolean;
+}
+
+interface BattleEffect {
+  id: number;
+  type: string;
+  x: number;
+  y: number;
+}
 
 interface BattleAreaProps {
-  gameData: any;
+  gameData: {
+    currentArea?: string;
+    characters?: {
+      level: number;
+    }[];
+    damage?: number;
+    upgrades?: {
+      damageMultiplier?: number;
+      criticalChance?: number;
+      criticalMultiplier?: number;
+    };
+    walletAddress?: string;
+  };
   onAttack: (amount: number) => void;
-  onMintNFT: (item: any) => void;
+  onMintNFT: (item: TreasureItem) => void;
   isProcessing: boolean;
   onMonsterDefeated?: () => void;
 }
@@ -27,18 +75,18 @@ export default function BattleArea({
   isProcessing,
   onMonsterDefeated,
 }: BattleAreaProps) {
-  const [monster, setMonster] = useState<any>(null);
+  const [monster, setMonster] = useState<Monster | null>(null);
   const [monsterHealth, setMonsterHealth] = useState(100);
   const [isAttacking, setIsAttacking] = useState(false);
-  const [damageNumbers, setDamageNumbers] = useState<any[]>([]);
+  const [damageNumbers, setDamageNumbers] = useState<DamageNumber[]>([]);
   const [comboCount, setComboCount] = useState(0);
-  const [comboTimer, setComboTimer] = useState<any>(null);
+  const [comboTimer, setComboTimer] = useState<NodeJS.Timeout | null>(null);
   const [comboMultiplier, setComboMultiplier] = useState(1);
   const [showTreasure, setShowTreasure] = useState(false);
-  const [treasureItem, setTreasureItem] = useState<any>(null);
+  const [treasureItem, setTreasureItem] = useState<TreasureItem | null>(null);
   const [monstersDefeated, setMonstersDefeated] = useState(0);
   const [coinsEarned, setCoinsEarned] = useState(0);
-  const [battleEffects, setBattleEffects] = useState<any[]>([]);
+  const [battleEffects, setBattleEffects] = useState<BattleEffect[]>([]);
   const battleAreaRef = useRef<HTMLDivElement>(null);
 
   // สร้างมอนสเตอร์ใหม่

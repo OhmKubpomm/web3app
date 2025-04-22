@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { mintNFT } from "@/lib/nft-client";
 import { ethers } from "ethers";
 
 interface NFTPanelProps {
@@ -40,7 +39,7 @@ export default function NFTPanel({
   onMintNFT,
   isProcessing,
 }: NFTPanelProps) {
-  const { address, chainId } = useWeb3();
+  const { address, chainId, mintNFT } = useWeb3();
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [mintingStatus, setMintingStatus] = useState<
@@ -320,56 +319,42 @@ export default function NFTPanel({
 
   // ฟังก์ชันยืนยันการ mint NFT
   const handleConfirmMint = async () => {
-    if (!selectedItem || !address) return;
-
-    // ตรวจสอบอีกครั้งว่า NFT ไม่เต็ม
-    if (mintedNFTs.length >= inventoryLimit) {
-      toast.error("กระเป๋า NFT เต็ม", {
-        description: "คุณไม่สามารถ mint NFT เพิ่มได้ กรุณาขาย NFT บางชิ้นก่อน",
-      });
-      setShowConfirmDialog(false);
-      return;
-    }
+    if (!selectedItem) return;
 
     setMintingStatus("processing");
     setErrorMessage(null);
+    setMintProgress(0);
 
-    // เริ่มการอัพเดทความคืบหน้า
-    let progress = 0;
+    // ตั้งค่า interval สำหรับแสดงความคืบหน้า
     const progressInterval = setInterval(() => {
-      progress += 5;
-      if (progress > 90) {
-        progress = 90; // ไม่ให้เต็ม 100% จนกว่าจะสำเร็จจริงๆ
-      }
-      setMintProgress(progress);
-    }, 500);
+      setMintProgress((prev) => {
+        if (prev >= 90) {
+          // คงที่ที่ 90% จนกว่าจะเสร็จสิ้น
+          return 90;
+        }
+        return prev + Math.random() * 6;
+      });
+    }, 800);
 
     try {
       // สร้าง metadata สำหรับ NFT
       const metadata = {
         name: selectedItem.name,
         description: selectedItem.description,
-        image: selectedItem.image,
+        uri: `ipfs://example/${selectedItem.id || Date.now()}`, // ปรับเป็น URI ของ metadata ที่เก็บไว้ใน IPFS หรือคล้ายกัน
+        image: selectedItem.image || `https://adventure-game.example.com/api/nft/image/${selectedItem.id || Date.now()}`,
+        animation_url: selectedItem.animation_url,
         attributes: [
-          { trait_type: "Type", value: selectedItem.type },
-          { trait_type: "Rarity", value: selectedItem.rarity },
-          { trait_type: "Boost", value: selectedItem.description },
+          { trait_type: "Type", value: selectedItem.type || "weapon" },
+          { trait_type: "Rarity", value: selectedItem.rarity || "uncommon" },
+          { trait_type: "Power", value: selectedItem.power || 5 },
         ],
       };
 
       console.log("Attempting to mint NFT with metadata:", metadata);
 
-      // Get provider and signer
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-
-      // เรียกใช้ฟังก์ชัน mintNFT จาก nft-client
-      const result: {
-        success: boolean;
-        tokenId?: number;
-        txHash?: string;
-        error?: string;
-      } = await mintNFT(signer, address, metadata);
+      // สร้าง NFT โดยใช้ useWeb3 hook's mintNFT
+      const result = await mintNFT(metadata);
       console.log("Mint result:", result);
 
       // Set transaction hash
@@ -496,69 +481,110 @@ export default function NFTPanel({
               <h4 className="text-sm font-medium mb-2">NFT ของคุณ</h4>
               <div className="grid grid-cols-2 gap-2">
                 {mintedNFTs.map((nft, index) => (
-                  <Card
+                  <motion.div
                     key={index}
-                    className="bg-black/30 border-purple-500/30 hover:border-purple-500/50 transition-colors"
+                    whileHover={{ scale: 1.03 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                    className="cursor-pointer"
                   >
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-2">
-                        <div className="relative">
-                          <Badge
-                            className={`absolute -top-2 -right-2 ${
-                              nft.rarity === "common"
-                                ? "bg-gray-500"
-                                : nft.rarity === "uncommon"
-                                ? "bg-green-500"
-                                : nft.rarity === "rare"
-                                ? "bg-blue-500"
-                                : "bg-purple-500"
-                            }`}
-                          >
-                            {nft.rarity}
-                          </Badge>
-                          <div className="w-10 h-10 bg-purple-900/30 rounded-md flex items-center justify-center">
-                            <Sparkles className="h-5 w-5 text-purple-400" />
+                    <Card
+                      className={`bg-black/30 relative overflow-hidden nft-card hover:shadow-lg ${
+                        nft.rarity === "legendary"
+                          ? "glow-legendary"
+                          : nft.rarity === "epic"
+                          ? "glow-epic"
+                          : nft.rarity === "rare"
+                          ? "glow-rare"
+                          : nft.rarity === "uncommon"
+                          ? "glow-uncommon"
+                          : "glow-common"
+                      }`}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-2">
+                          <div className="relative">
+                            <Badge
+                              className={`absolute -top-2 -right-2 z-10 ${
+                                nft.rarity === "common"
+                                  ? "bg-gray-500"
+                                  : nft.rarity === "uncommon"
+                                  ? "bg-green-500"
+                                  : nft.rarity === "rare"
+                                  ? "bg-blue-500"
+                                  : nft.rarity === "epic"
+                                  ? "bg-purple-500"
+                                  : "bg-orange-500"
+                              }`}
+                            >
+                              {nft.rarity}
+                            </Badge>
+                            <div className="w-12 h-12 relative bg-gradient-to-br from-purple-900/50 to-blue-900/50 rounded-md flex items-center justify-center overflow-hidden">
+                              <motion.div
+                                animate={{ 
+                                  rotate: 360,
+                                  scale: [1, 1.1, 1],
+                                  opacity: [0.8, 1, 0.8] 
+                                }}
+                                transition={{ 
+                                  rotate: { duration: 10, repeat: Infinity, ease: "linear" },
+                                  scale: { duration: 2, repeat: Infinity, repeatType: "reverse" },
+                                  opacity: { duration: 2, repeat: Infinity, repeatType: "reverse" }
+                                }}
+                                className="absolute inset-0 bg-gradient-to-br from-transparent via-purple-500/10 to-transparent"
+                              />
+                              <Sparkles className={`h-6 w-6 ${
+                                nft.rarity === "legendary"
+                                  ? "text-orange-400"
+                                  : nft.rarity === "epic"
+                                  ? "text-purple-400"
+                                  : nft.rarity === "rare"
+                                  ? "text-blue-400"
+                                  : nft.rarity === "uncommon"
+                                  ? "text-green-400"
+                                  : "text-gray-400"
+                              }`} />
+                            </div>
+                          </div>
+                          <div className="flex-1 overflow-hidden">
+                            <h5 className="text-xs font-medium truncate">{nft.name}</h5>
+                            <div className="flex items-center gap-1">
+                              <p className="text-xs text-gray-400 truncate">
+                                #{nft.tokenId}
+                              </p>
+                              {nft.simulated && (
+                                <Badge
+                                  variant="outline"
+                                  className="h-4 text-[8px] px-1 border-yellow-500 text-yellow-500"
+                                >
+                                  จำลอง
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
+                              onClick={() => viewNFTOnExplorer(nft.tokenId)}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              <span className="sr-only">ดู</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                              onClick={() => handleDeleteStart(nft)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span className="sr-only">ขาย</span>
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex-1">
-                          <h5 className="text-xs font-medium">{nft.name}</h5>
-                          <div className="flex items-center gap-1">
-                            <p className="text-xs text-gray-400">
-                              #{nft.tokenId}
-                            </p>
-                            {nft.simulated && (
-                              <Badge
-                                variant="outline"
-                                className="h-4 text-[8px] px-1 border-yellow-500 text-yellow-500"
-                              >
-                                จำลอง
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
-                            onClick={() => viewNFTOnExplorer(nft.tokenId)}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            <span className="sr-only">ดู</span>
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                            onClick={() => handleDeleteStart(nft)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">ขาย</span>
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 ))}
               </div>
             </div>

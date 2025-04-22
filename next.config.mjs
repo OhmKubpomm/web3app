@@ -1,15 +1,19 @@
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   images: {
-    domains: ["localhost"],
     remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "localhost",
+      },
       {
         protocol: "https",
         hostname: "**",
       },
     ],
-    dangerouslyAllowSVG: true, // Add this line to allow SVG files
-    contentDispositionType: "attachment", // Add this for security
+    dangerouslyAllowSVG: true,
+    contentDispositionType: "attachment",
   },
   experimental: {
     serverActions: {
