@@ -23,7 +23,7 @@ export async function getPlayerData(walletAddress: string) {
     // ตรวจสอบว่าอยู่ในโหมดจำลองหรือไม่
     if (process.env.NEXT_PUBLIC_SIMULATION_MODE === "true") {
       console.log("[Supabase] Using simulation mode for player data");
-      // ใช้ฟังก์ชันจาก simulation-mode.ts
+      // ใช้ฟังก์ชันจาก simulation-mode.ts 00
       const {
         generateMockPlayerData,
         getLocalPlayerData,
