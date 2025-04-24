@@ -24,6 +24,7 @@
 ## การตั้งค่า Supabase
 
 1. **สร้างโปรเจกต์ใหม่บน Supabase**:
+
    - ไปที่ [Supabase Dashboard](https://app.supabase.io/)
    - คลิก "New Project"
    - ตั้งชื่อโปรเจกต์ (เช่น "adventure-clicker")
@@ -32,6 +33,7 @@
    - คลิก "Create new project"
 
 2. **สร้างโครงสร้างฐานข้อมูล**:
+
    - หลังจากโปรเจกต์ถูกสร้างเสร็จ ไปที่แท็บ "SQL Editor"
    - คลิก "New Query"
    - คัดลอกและวางโค้ด SQL จากไฟล์ `supabase/migrations/20240316000000_initial_schema.sql`
@@ -45,6 +47,20 @@
 
 ## การตั้งค่า Environment Variables
 
+โปรเจคนี้ใช้ไฟล์ `.env` สำหรับเก็บตัวแปรสภาพแวดล้อม แต่ไฟล์นี้จะไม่ถูกรวมใน Git repository เพื่อความปลอดภัย คุณจะพบไฟล์ `.env.example` ที่มีตัวอย่างของตัวแปรทั้งหมดที่จำเป็น
+
+### การตั้งค่าสำหรับการพัฒนา
+
+1. คัดลอกไฟล์ `.env.example` เป็น `.env`:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. แก้ไขไฟล์ `.env` และใส่ค่าที่ถูกต้องสำหรับตัวแปรแต่ละตัว
+
+### การตั้งค่าสำหรับการ Deploy บน Vercel
+
 คุณจำเป็นต้องตั้งค่า Environment Variables ต่อไปนี้ใน Vercel:
 
 ### ตัวแปรที่จำเป็น
@@ -55,27 +71,36 @@
 - `NEXTAUTH_SECRET`: สร้างด้วยคำสั่ง `openssl rand -base64 32` หรือใช้เว็บไซต์สร้าง Secret
 - `NEXTAUTH_URL`: URL ของแอปพลิเคชันของคุณ (เช่น https://your-app.vercel.app)
 
-### ตัวแปรสำหรับ Web3 (ถ้าใช้ฟีเจอร์ NFT)
+### ตัวแปรสำหรับ Web3
 
-- `NEXT_PUBLIC_ALCHEMY_API_KEY`: API Key จาก Alchemy
-- `NEXT_PUBLIC_NFT_CONTRACT_ADDRESS`: ที่อยู่ Contract ของ NFT (ถ้ามี)
+- `NEXT_PUBLIC_SIMULATION_MODE`: ตั้งเป็น "true" เพื่อใช้โหมดจำลองโดยไม่ต้องเชื่อมต่อกับบล็อกเชนจริง หรือ "false" เพื่อใช้งานกับบล็อกเชนจริง
+- `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID`: Project ID จาก [WalletConnect](https://cloud.walletconnect.com/)
+- `NEXT_PUBLIC_ALCHEMY_API_KEY`: API Key จาก [Alchemy](https://www.alchemy.com/)
+- `NEXT_PUBLIC_INFURA_API_KEY`: API Key จาก [Infura](https://infura.io/) (ทางเลือกเพิ่มเติมหากไม่ใช้ Alchemy)
+- `NEXT_PUBLIC_GAME_CONTRACT_ADDRESS`: ที่อยู่ Contract ของเกม
+- `NEXT_PUBLIC_NFT_CONTRACT_ADDRESS`: ที่อยู่ Contract ของ NFT
+- `NEXT_PUBLIC_NETWORK`: เครือข่ายที่ใช้ (เช่น "sepolia", "mumbai", "polygon")
 
 ## การ Deploy บน Vercel
 
 1. **เตรียมโค้ดของคุณ**:
+
    - Push โค้ดของคุณไปยัง GitHub repository
 
 2. **สร้างโปรเจกต์ใหม่บน Vercel**:
+
    - ไปที่ [Vercel Dashboard](https://vercel.com/dashboard)
    - คลิก "Add New" > "Project"
    - เลือก GitHub repository ของคุณ
    - คลิก "Import"
 
 3. **ตั้งค่า Environment Variables**:
+
    - ในหน้าการตั้งค่าโปรเจกต์ ไปที่ส่วน "Environment Variables"
    - เพิ่มตัวแปรทั้งหมดที่กล่าวถึงในส่วนก่อนหน้านี้
 
 4. **ปรับแต่งการตั้งค่า Build**:
+
    - ตรวจสอบให้แน่ใจว่า Build Command ถูกตั้งค่าเป็น `prisma generate && next build`
    - ตรวจสอบให้แน่ใจว่า Output Directory ถูกตั้งค่าเป็น `.next`
 
@@ -129,4 +154,3 @@
 ### ปัญหาการแสดงผล UI
 
 - ตรวจสอบว่าได้ตั้งค
-
