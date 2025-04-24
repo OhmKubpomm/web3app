@@ -7,7 +7,7 @@ import {
   ChartContainer,
   ChartBars,
   ChartBar,
-} from "@/components/ui/chart";
+} from "@/components/chart";
 import { Activity, Sword, Coins, Clock, Trophy } from "lucide-react";
 
 interface StatsPanelProps {

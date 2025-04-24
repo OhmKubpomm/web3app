@@ -459,7 +459,7 @@ export default function MonsterCard({
   // ฟังก์ชันสร้างสีของมอนสเตอร์ตาม color property
   const getMonsterColor = (opacity = 1) => {
     if (!currentMonster) return `rgba(128, 128, 128, ${opacity})`;
-    
+
     const colorMap: Record<string, string> = {
       green: `rgba(0, 128, 0, ${opacity})`,
       red: `rgba(200, 0, 0, ${opacity})`,
@@ -472,13 +472,17 @@ export default function MonsterCard({
       beige: `rgba(245, 222, 179, ${opacity})`,
       orange: `rgba(255, 140, 0, ${opacity})`,
     };
-    
-    return colorMap[currentMonster.color.toLowerCase()] || `rgba(128, 128, 128, ${opacity})`;
+
+    return (
+      colorMap[currentMonster.color.toLowerCase()] ||
+      `rgba(128, 128, 128, ${opacity})`
+    );
   };
 
   // ฟังก์ชันโจมตีมอนสเตอร์
   const handleAttack = async () => {
-    if (isAttacking || !currentMonster || monsterHP <= 0 || isProcessing) return;
+    if (isAttacking || !currentMonster || monsterHP <= 0 || isProcessing)
+      return;
 
     setIsAttacking(true);
 
@@ -493,7 +497,7 @@ export default function MonsterCard({
 
       // คำนวณความเสียหาย
       let playerDamage = gameData?.damage || 1;
-      
+
       // โอกาสคริติคอล 10%
       const isCritical = Math.random() < (gameData?.critChance || 0.1);
       if (isCritical) {
@@ -506,19 +510,19 @@ export default function MonsterCard({
 
       // คลาสสำหรับแสดงดาเมจ
       const damageClass = isCritical ? "critical-text" : "damage-text";
-      
+
       // แสดงเอฟเฟคดาเมจบนมอนสเตอร์
       if (containerRef.current) {
         const damageEl = document.createElement("div");
         damageEl.textContent = playerDamage.toString();
         damageEl.className = damageClass;
-        
+
         // สุ่มตำแหน่งแสดงดาเมจ
         const xPos = Math.random() * 40 - 20;
         damageEl.style.left = `calc(50% + ${xPos}px)`;
         damageEl.style.top = "40%";
         containerRef.current.appendChild(damageEl);
-        
+
         // ลบเอลิเมนต์หลังจากแอนิเมชันจบ
         setTimeout(() => {
           damageEl.remove();
@@ -527,7 +531,7 @@ export default function MonsterCard({
 
       // สร้างเอฟเฟคพาร์ติเคิล
       createParticles(isCritical ? 20 : 10);
-      
+
       // ถ้าคริติคอล ให้สั่นมอนสเตอร์
       if (isCritical && monsterRef.current) {
         monsterRef.current.classList.add("animate-shake");
@@ -540,28 +544,25 @@ export default function MonsterCard({
       const actualAddress = wagmiAddress || address;
       if (actualAddress) {
         const attackResult = await attackMonster(currentMonster.id);
-        
+
         if (attackResult) {
           // ลด HP มอนสเตอร์
           const newHP = Math.max(0, monsterHP - playerDamage);
           setMonsterHP(newHP);
-          
+
           // บันทึกประวัติการต่อสู้
           try {
-            await recordBattle({
-              playerAddress: actualAddress,
-              battleData: {
-                monsterId: currentMonster.id,
-                damage: playerDamage,
-                wasDefeated: newHP <= 0,
-                area: gameData?.currentArea || "forest",
-                timestamp: Date.now()
-              }
+            await recordBattle(actualAddress, {
+              monsterId: currentMonster.id,
+              damage: playerDamage,
+              wasDefeated: newHP <= 0,
+              area: gameData?.currentArea || "forest",
+              timestamp: Date.now(),
             });
           } catch (err) {
             console.error("Error recording battle:", err);
           }
-          
+
           // ตรวจสอบว่ามอนสเตอร์ตายหรือไม่
           if (newHP <= 0) {
             handleMonsterDefeat();
@@ -581,9 +582,7 @@ export default function MonsterCard({
           : "Error attacking monster",
         {
           description:
-            locale === "th"
-              ? "กรุณาลองใหม่อีกครั้ง"
-              : "Please try again later",
+            locale === "th" ? "กรุณาลองใหม่อีกครั้ง" : "Please try again later",
           position: "top-right",
         }
       );

@@ -101,6 +101,23 @@ export default function GameDashboard({
     }));
   };
 
+  // ฟังก์ชันสำหรับการทำเควสสำเร็จ
+  const handleQuestComplete = (reward: {
+    coins: number;
+    experience: number;
+  }) => {
+    // อัพเดตเหรียญ
+    handleCoinsUpdate(reward.coins);
+
+    // อัพเดต experience ถ้าจำเป็น
+    if (reward.experience) {
+      setGameData((prev: any) => ({
+        ...prev,
+        experience: (prev.experience || 0) + reward.experience,
+      }));
+    }
+  };
+
   // ฟังก์ชันอัพเดตข้อมูลเกม
   const handleGameDataUpdate = (updatedData: any) => {
     setGameData(updatedData);
@@ -570,7 +587,7 @@ export default function GameDashboard({
 
                 <QuestSystem
                   gameData={gameData}
-                  onQuestComplete={handleCoinsUpdate}
+                  onQuestComplete={handleQuestComplete}
                   isProcessing={isProcessing}
                 />
               </div>
@@ -630,7 +647,7 @@ export default function GameDashboard({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <QuestSystem
                   gameData={gameData}
-                  onQuestComplete={handleCoinsUpdate}
+                  onQuestComplete={handleQuestComplete}
                   isProcessing={isProcessing}
                 />
 

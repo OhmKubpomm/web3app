@@ -390,6 +390,7 @@ const ChartBars = ({ children, data = [], maxValue = 0 }: ChartBarsProps) => {
 interface ChartBarProps extends React.SVGAttributes<SVGRectElement> {
   value: number;
   maxValue?: number;
+  index?: number;
 }
 
 const ChartBar = ({

@@ -28,7 +28,7 @@ export default function InventoryPanel({ gameData }: InventoryPanelProps) {
 
   // กรองไอเทมตามการค้นหา
   const filteredItems = gameData.inventory.filter(
-    (item) =>
+    (item: any) =>
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -213,7 +213,7 @@ export default function InventoryPanel({ gameData }: InventoryPanelProps) {
               ) : (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {paginatedItems.map((item, index) => (
+                    {paginatedItems.map((item: any, index: number) => (
                       <motion.div
                         key={item.tokenId || index}
                         whileHover={{ scale: 1.03 }}

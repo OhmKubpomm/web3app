@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWeb3 } from "@/lib/web3-client";
 import { toast } from "sonner";
-import { useI18n } from "@/lib/i18n";
 import {
   ExternalLink,
   Clock,
@@ -32,7 +31,6 @@ interface Transaction {
 
 export default function BlockchainExplorer() {
   const { address, chainId } = useWeb3();
-  const { t } = useI18n();
   const [balance, setBalance] = useState<string>("0");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,7 +65,7 @@ export default function BlockchainExplorer() {
   };
 
   // Fetch balance and transactions
-  const fetchBlockchainData = async () => {
+  const fetchBlockchainData = useCallback(async () => {
     if (!address || typeof window === "undefined" || !window.ethereum) return;
 
     setIsLoading(true);
@@ -141,14 +139,14 @@ export default function BlockchainExplorer() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [address]);
 
   // Fetch data on mount and when address/chain changes
   useEffect(() => {
     if (address) {
       fetchBlockchainData();
     }
-  }, [address, chainId]);
+  }, [address, chainId, fetchBlockchainData]);
 
   if (!address) {
     return (

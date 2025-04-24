@@ -71,7 +71,8 @@ export default function MonsterBattle({
       ],
     };
 
-    const areaMonsters = monsters[area] || monsters["ป่า"];
+    const areaMonsters =
+      monsters[area as keyof typeof monsters] || monsters["ป่า"];
     const randomMonster =
       areaMonsters[Math.floor(Math.random() * areaMonsters.length)];
 

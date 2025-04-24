@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { ethers } from "ethers";
 import { GameContract } from "@/lib/contracts/game-contract";
-import { isSimulationMode, generateMockPlayerData } from "@/lib/simulation-mode";
+import {
+  isSimulationMode,
+  generateMockPlayerData,
+} from "@/lib/simulation-mode";
 
 const GAME_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_GAME_CONTRACT_ADDRESS;
 const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY;
@@ -21,12 +24,15 @@ export async function GET(request: Request) {
       );
     }
 
-    console.log(`[API] Checking if player is registered on blockchain: ${address}`);
+    console.log(
+      `[API] Checking if player is registered on blockchain: ${address}`
+    );
 
     // ตรวจสอบว่าอยู่ในโหมดจำลองหรือไม่
     if (isSimulationMode()) {
       console.log("[API] Running in simulation mode");
-      const mockPlayer = generateMockPlayerData(address);
+      // สร้างข้อมูลจำลองแต่ไม่จำเป็นต้องใช้ในการตอบกลับ
+      generateMockPlayerData(address);
       return NextResponse.json({
         success: true,
         isRegistered: true,
@@ -37,7 +43,9 @@ export async function GET(request: Request) {
 
     // ตรวจสอบ contract address
     if (!GAME_CONTRACT_ADDRESS) {
-      console.warn("[API] Game contract address not found in environment variables");
+      console.warn(
+        "[API] Game contract address not found in environment variables"
+      );
       // คืนค่า simulatedResponse เพื่อหลีกเลี่ยง error
       return NextResponse.json({
         success: true,
@@ -65,7 +73,11 @@ export async function GET(request: Request) {
     }
 
     // ถ้า Alchemy ไม่ทำงาน ลองใช้ Infura
-    if (!providerConnected && INFURA_API_KEY && INFURA_API_KEY !== "your-infura-api-key") {
+    if (
+      !providerConnected &&
+      INFURA_API_KEY &&
+      INFURA_API_KEY !== "your-infura-api-key"
+    ) {
       try {
         provider = new ethers.InfuraProvider(NETWORK, INFURA_API_KEY);
         // ทดสอบการเชื่อมต่อ
@@ -80,7 +92,9 @@ export async function GET(request: Request) {
     // ถ้าทั้ง Alchemy และ Infura ไม่ทำงาน ลองใช้ public provider
     if (!providerConnected) {
       try {
-        provider = new ethers.JsonRpcProvider(`https://${NETWORK}.publicnode.com`);
+        provider = new ethers.JsonRpcProvider(
+          `https://${NETWORK}.publicnode.com`
+        );
         // ทดสอบการเชื่อมต่อ
         await provider.getBlockNumber();
         providerConnected = true;
@@ -92,8 +106,11 @@ export async function GET(request: Request) {
 
     // ถ้าไม่สามารถเชื่อมต่อกับ provider ใด ๆ ให้คืนค่า simulatedResponse
     if (!providerConnected) {
-      console.warn("[API] No working provider found, falling back to simulation mode");
-      const mockPlayer = generateMockPlayerData(address);
+      console.warn(
+        "[API] No working provider found, falling back to simulation mode"
+      );
+      // สร้างข้อมูลจำลองแต่ไม่จำเป็นต้องใช้ในการตอบกลับ
+      generateMockPlayerData(address);
       return NextResponse.json({
         success: true,
         isRegistered: true,
@@ -142,7 +159,7 @@ export async function GET(request: Request) {
     } catch (e) {
       console.error("[API] Error parsing URL:", e);
     }
-    
+
     return NextResponse.json({
       success: true,
       isRegistered: true, // สมมติว่าลงทะเบียนแล้ว เพื่อให้ UX ดีขึ้น
@@ -151,4 +168,4 @@ export async function GET(request: Request) {
       error: "Internal server error, using simulated response",
     });
   }
-} 
+}

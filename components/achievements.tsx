@@ -1,35 +1,43 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { Trophy, Star, CheckCircle, Lock, Award } from "lucide-react"
-import { useI18n } from "@/lib/i18n"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Trophy, Star, CheckCircle, Lock, Award } from "lucide-react";
+// Import these icons for the component
+import { Sword, Package, Map, Coins, Zap, Share2 } from "lucide-react";
 
 interface Achievement {
-  id: string
-  title: string
-  description: string
-  icon: React.ReactNode
-  progress: number
-  target: number
-  completed: boolean
-  reward: string
-  category: "combat" | "collection" | "exploration" | "social"
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  progress: number;
+  target: number;
+  completed: boolean;
+  reward: string;
+  category: "combat" | "collection" | "exploration" | "social";
 }
 
-export default function Achievements({ gameData }: { gameData: any }) {
-  const { t } = useI18n()
-  const [achievements, setAchievements] = useState<Achievement[]>([])
-  const [activeCategory, setActiveCategory] = useState<string | null>(null)
+interface GameData {
+  monstersDefeated?: number;
+  inventory?: Array<unknown>;
+  coins?: number;
+  damage?: number;
+  [key: string]: unknown;
+}
+
+export default function Achievements({ gameData }: { gameData: GameData }) {
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   // Generate achievements based on game data
   useEffect(() => {
-    if (!gameData) return
+    if (!gameData) return;
 
     const generatedAchievements: Achievement[] = [
       {
@@ -120,18 +128,21 @@ export default function Achievements({ gameData }: { gameData: any }) {
         reward: "Unique Title",
         category: "social",
       },
-    ]
+    ];
 
-    setAchievements(generatedAchievements)
-  }, [gameData])
+    setAchievements(generatedAchievements);
+  }, [gameData]);
 
   // Filter achievements by category
-  const filteredAchievements = activeCategory ? achievements.filter((a) => a.category === activeCategory) : achievements
+  const filteredAchievements = activeCategory
+    ? achievements.filter((a) => a.category === activeCategory)
+    : achievements;
 
   // Calculate completion stats
-  const completedCount = achievements.filter((a) => a.completed).length
-  const totalCount = achievements.length
-  const completionPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0
+  const completedCount = achievements.filter((a) => a.completed).length;
+  const totalCount = achievements.length;
+  const completionPercentage =
+    totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   return (
     <Card className="border-purple-500/30 bg-black/40 backdrop-blur-sm">
@@ -147,7 +158,10 @@ export default function Achievements({ gameData }: { gameData: any }) {
           <div className="bg-black/30 p-4 rounded-lg">
             <div className="flex justify-between items-center mb-2">
               <h3 className="font-medium">Overall Progress</h3>
-              <Badge variant="outline" className="bg-black/30 text-gray-300 border-gray-700">
+              <Badge
+                variant="outline"
+                className="bg-black/30 text-gray-300 border-gray-700"
+              >
                 {completedCount}/{totalCount}
               </Badge>
             </div>
@@ -157,7 +171,9 @@ export default function Achievements({ gameData }: { gameData: any }) {
               {completedCount > 0 && (
                 <span className="flex items-center gap-1">
                   <Star className="h-3 w-3 text-yellow-400" />
-                  {completedCount} {completedCount === 1 ? "Achievement" : "Achievements"} Unlocked
+                  {completedCount}{" "}
+                  {completedCount === 1 ? "Achievement" : "Achievements"}{" "}
+                  Unlocked
                 </span>
               )}
             </div>
@@ -168,7 +184,9 @@ export default function Achievements({ gameData }: { gameData: any }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
-                activeCategory === null ? "bg-purple-600 text-white" : "bg-black/30 text-gray-300 hover:bg-black/50"
+                activeCategory === null
+                  ? "bg-purple-600 text-white"
+                  : "bg-black/30 text-gray-300 hover:bg-black/50"
               }`}
               onClick={() => setActiveCategory(null)}
             >
@@ -178,7 +196,9 @@ export default function Achievements({ gameData }: { gameData: any }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
-                activeCategory === "combat" ? "bg-red-600 text-white" : "bg-black/30 text-gray-300 hover:bg-black/50"
+                activeCategory === "combat"
+                  ? "bg-red-600 text-white"
+                  : "bg-black/30 text-gray-300 hover:bg-black/50"
               }`}
               onClick={() => setActiveCategory("combat")}
             >
@@ -212,7 +232,9 @@ export default function Achievements({ gameData }: { gameData: any }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
-                activeCategory === "social" ? "bg-pink-600 text-white" : "bg-black/30 text-gray-300 hover:bg-black/50"
+                activeCategory === "social"
+                  ? "bg-pink-600 text-white"
+                  : "bg-black/30 text-gray-300 hover:bg-black/50"
               }`}
               onClick={() => setActiveCategory("social")}
             >
@@ -226,14 +248,18 @@ export default function Achievements({ gameData }: { gameData: any }) {
                 key={achievement.id}
                 whileHover={{ scale: 1.02 }}
                 className={`bg-black/30 p-4 rounded-lg border ${
-                  achievement.completed ? "border-yellow-500/50" : "border-gray-700/30"
+                  achievement.completed
+                    ? "border-yellow-500/50"
+                    : "border-gray-700/30"
                 }`}
               >
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-10 h-10 rounded-full ${
-                        achievement.completed ? "bg-yellow-500/20" : "bg-gray-700/20"
+                        achievement.completed
+                          ? "bg-yellow-500/20"
+                          : "bg-gray-700/20"
                       } flex items-center justify-center`}
                     >
                       {achievement.icon}
@@ -241,9 +267,13 @@ export default function Achievements({ gameData }: { gameData: any }) {
                     <div>
                       <h4 className="font-medium flex items-center gap-2">
                         {achievement.title}
-                        {achievement.completed && <CheckCircle className="h-4 w-4 text-green-400" />}
+                        {achievement.completed && (
+                          <CheckCircle className="h-4 w-4 text-green-400" />
+                        )}
                       </h4>
-                      <p className="text-xs text-gray-400">{achievement.description}</p>
+                      <p className="text-xs text-gray-400">
+                        {achievement.description}
+                      </p>
                     </div>
                   </div>
                   <Badge
@@ -254,22 +284,35 @@ export default function Achievements({ gameData }: { gameData: any }) {
                         : "bg-gray-700/20 text-gray-300 border-gray-700"
                     }`}
                   >
-                    {achievement.completed ? "Completed" : `${achievement.progress}/${achievement.target}`}
+                    {achievement.completed
+                      ? "Completed"
+                      : `${achievement.progress}/${achievement.target}`}
                   </Badge>
                 </div>
 
                 {!achievement.completed && (
-                  <Progress value={(achievement.progress / achievement.target) * 100} className="h-1 mb-2" />
+                  <Progress
+                    value={(achievement.progress / achievement.target) * 100}
+                    className="h-1 mb-2"
+                  />
                 )}
 
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-gray-400">Reward:</span>
                   <div className="flex items-center gap-1">
                     <Award className="h-3 w-3 text-yellow-400" />
-                    <span className={achievement.completed ? "text-yellow-300" : "text-gray-400"}>
+                    <span
+                      className={
+                        achievement.completed
+                          ? "text-yellow-300"
+                          : "text-gray-400"
+                      }
+                    >
                       {achievement.reward}
                     </span>
-                    {!achievement.completed && <Lock className="h-3 w-3 text-gray-500 ml-1" />}
+                    {!achievement.completed && (
+                      <Lock className="h-3 w-3 text-gray-500 ml-1" />
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -278,9 +321,5 @@ export default function Achievements({ gameData }: { gameData: any }) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
-
-// Import these icons for the component
-import { Sword, Package, Map, Coins, Zap, Share2 } from "lucide-react"
-

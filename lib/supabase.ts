@@ -24,10 +24,9 @@ export async function getPlayerData(walletAddress: string) {
     if (process.env.NEXT_PUBLIC_SIMULATION_MODE === "true") {
       console.log("[Supabase] Using simulation mode for player data");
       // ใช้ฟังก์ชันจาก simulation-mode.ts 00
-      const {
-        generateMockPlayerData,
-        getLocalPlayerData,
-      } = require("./simulation-mode");
+      const { generateMockPlayerData, getLocalPlayerData } = await import(
+        "./simulation-mode"
+      );
 
       // ตรวจสอบว่ามีข้อมูลใน localStorage หรือไม่
       const localData = getLocalPlayerData(walletAddress);
@@ -59,7 +58,7 @@ export async function getPlayerData(walletAddress: string) {
           console.log(
             "[Supabase] Falling back to simulation mode due to fetch error"
           );
-          const { generateMockPlayerData } = require("./simulation-mode");
+          const { generateMockPlayerData } = await import("./simulation-mode");
           return generateMockPlayerData(walletAddress);
         }
         return null;
@@ -71,7 +70,7 @@ export async function getPlayerData(walletAddress: string) {
       console.log(
         "[Supabase] Falling back to simulation mode due to fetch error"
       );
-      const { generateMockPlayerData } = require("./simulation-mode");
+      const { generateMockPlayerData } = await import("./simulation-mode");
       return generateMockPlayerData(walletAddress);
     }
   } catch (error: any) {
@@ -84,7 +83,7 @@ export async function getPlayerData(walletAddress: string) {
 
     // ใช้ข้อมูลจำลองเมื่อเกิดข้อผิดพลาด
     console.log("[Supabase] Falling back to simulation mode due to error");
-    const { generateMockPlayerData } = require("./simulation-mode");
+    const { generateMockPlayerData } = await import("./simulation-mode");
     return generateMockPlayerData(walletAddress);
   }
 }
@@ -107,10 +106,9 @@ export async function createPlayer(walletAddress: string, initialData: any) {
     // ตรวจสอบว่าอยู่ในโหมดจำลองหรือไม่
     if (process.env.NEXT_PUBLIC_SIMULATION_MODE === "true") {
       console.log("[Supabase] Using simulation mode for player creation");
-      const {
-        generateMockPlayerData,
-        saveLocalPlayerData,
-      } = require("./simulation-mode");
+      const { generateMockPlayerData, saveLocalPlayerData } = await import(
+        "./simulation-mode"
+      );
 
       // สร้างข้อมูลจำลองใหม่
       const mockPlayer = generateMockPlayerData(walletAddress);
@@ -146,10 +144,9 @@ export async function createPlayer(walletAddress: string, initialData: any) {
         console.log(
           "[Supabase] Falling back to simulation mode due to player creation error"
         );
-        const {
-          generateMockPlayerData,
-          saveLocalPlayerData,
-        } = require("./simulation-mode");
+        const { generateMockPlayerData, saveLocalPlayerData } = await import(
+          "./simulation-mode"
+        );
         const mockPlayer = generateMockPlayerData(walletAddress);
         saveLocalPlayerData(walletAddress, mockPlayer);
         return mockPlayer;
@@ -161,10 +158,9 @@ export async function createPlayer(walletAddress: string, initialData: any) {
         console.log(
           "[Supabase] Falling back to simulation mode due to missing player ID"
         );
-        const {
-          generateMockPlayerData,
-          saveLocalPlayerData,
-        } = require("./simulation-mode");
+        const { generateMockPlayerData, saveLocalPlayerData } = await import(
+          "./simulation-mode"
+        );
         const mockPlayer = generateMockPlayerData(walletAddress);
         saveLocalPlayerData(walletAddress, mockPlayer);
         return mockPlayer;
@@ -232,10 +228,9 @@ export async function createPlayer(walletAddress: string, initialData: any) {
       console.log(
         "[Supabase] Falling back to simulation mode due to fetch error"
       );
-      const {
-        generateMockPlayerData,
-        saveLocalPlayerData,
-      } = require("./simulation-mode");
+      const { generateMockPlayerData, saveLocalPlayerData } = await import(
+        "./simulation-mode"
+      );
       const mockPlayer = generateMockPlayerData(walletAddress);
       saveLocalPlayerData(walletAddress, mockPlayer);
       return mockPlayer;
@@ -243,10 +238,9 @@ export async function createPlayer(walletAddress: string, initialData: any) {
   } catch (error) {
     console.error("Error in createPlayer:", error);
     console.log("[Supabase] Falling back to simulation mode due to error");
-    const {
-      generateMockPlayerData,
-      saveLocalPlayerData,
-    } = require("./simulation-mode");
+    const { generateMockPlayerData, saveLocalPlayerData } = await import(
+      "./simulation-mode"
+    );
     const mockPlayer = generateMockPlayerData(walletAddress);
     saveLocalPlayerData(walletAddress, mockPlayer);
     return mockPlayer;

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { saveGameData } from "@/lib/actions";
 
 export async function POST(request: Request) {
@@ -18,19 +17,19 @@ export async function POST(request: Request) {
     console.log(`[API] Saving player with address: ${address}`);
 
     // ตั้งค่า cookie ให้สามารถอ่านได้จาก JavaScript
-    const response = NextResponse.json({ 
-      success: true, 
+    const response = NextResponse.json({
+      success: true,
       address,
-      message: "Player data saved successfully" 
+      message: "Player data saved successfully",
     });
-    
+
     // ตั้งค่า cookie ด้วยค่า player_address เพื่อใช้ในการระบุตัวตนผู้เล่น
     response.cookies.set("player_address", address, {
       httpOnly: false, // ให้ JavaScript อ่านได้
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 30, // 30 วัน
       path: "/",
-      sameSite: "lax"
+      sameSite: "lax",
     });
 
     console.log("[API] Cookie set in response");
@@ -62,4 +61,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-} 
+}
