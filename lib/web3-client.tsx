@@ -29,12 +29,12 @@ import {
 } from "@/lib/nft-client";
 
 // นำเข้าฟังก์ชันจากโมดูลจำลอง
-import { 
-  isSimulationMode, 
+import {
+  isSimulationMode,
   setSimulationMode,
   simulatePlayerRegistration,
   simulateAttack as mockAttack,
-  simulateMintNFT as mockMintNFT
+  simulateMintNFT as mockMintNFT,
 } from "@/lib/simulation-mode";
 
 // เพิ่มตัวแปรเพื่อตรวจสอบสถานะการเชื่อมต่อ
@@ -170,38 +170,51 @@ const utf8ToBase64 = (str: string) => {
 // ฟังก์ชันสำหรับตรวจสอบการตั้งค่า Web3 ที่จำเป็น
 const checkWeb3Configuration = () => {
   const errors = [];
-  
+
   // ตรวจสอบ contract addresses
   if (!process.env.NEXT_PUBLIC_GAME_CONTRACT_ADDRESS) {
-    errors.push("NEXT_PUBLIC_GAME_CONTRACT_ADDRESS ไม่ได้ถูกกำหนดค่าใน .env หรือ .env.local");
+    errors.push(
+      "NEXT_PUBLIC_GAME_CONTRACT_ADDRESS ไม่ได้ถูกกำหนดค่าใน .env หรือ .env.local"
+    );
   }
-  
+
   if (!process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS) {
-    errors.push("NEXT_PUBLIC_NFT_CONTRACT_ADDRESS ไม่ได้ถูกกำหนดค่าใน .env หรือ .env.local");
+    errors.push(
+      "NEXT_PUBLIC_NFT_CONTRACT_ADDRESS ไม่ได้ถูกกำหนดค่าใน .env หรือ .env.local"
+    );
   }
-  
+
   // ตรวจสอบ provider keys (ไม่จำเป็นในโหมดจำลอง)
   if (!isSimulationMode()) {
-    if (!process.env.NEXT_PUBLIC_ALCHEMY_API_KEY && !process.env.NEXT_PUBLIC_INFURA_API_KEY) {
-      errors.push("ไม่พบ API key สำหรับ Alchemy หรือ Infura ต้องกำหนดอย่างน้อยหนึ่งค่า");
+    if (
+      !process.env.NEXT_PUBLIC_ALCHEMY_API_KEY &&
+      !process.env.NEXT_PUBLIC_INFURA_API_KEY
+    ) {
+      errors.push(
+        "ไม่พบ API key สำหรับ Alchemy หรือ Infura ต้องกำหนดอย่างน้อยหนึ่งค่า"
+      );
     }
-    
+
     if (!process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID) {
-      errors.push("NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID ไม่ได้ถูกกำหนดค่าสำหรับการเชื่อมต่อ wallet");
+      errors.push(
+        "NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID ไม่ได้ถูกกำหนดค่าสำหรับการเชื่อมต่อ wallet"
+      );
     }
   }
-  
+
   // ถ้ามีข้อผิดพลาด ให้แสดงคำเตือนใน console
   if (errors.length > 0) {
     console.warn("พบปัญหาในการตั้งค่า Web3:", errors);
-    
+
     // ถ้าไม่ได้อยู่ในโหมดจำลอง แต่มีข้อผิดพลาดในการตั้งค่า ให้เปิดใช้โหมดจำลองโดยอัตโนมัติ
     if (!isSimulationMode()) {
-      console.warn("กำลังเปิดใช้งานโหมดจำลองโดยอัตโนมัติเนื่องจากพบปัญหาในการตั้งค่า");
+      console.warn(
+        "กำลังเปิดใช้งานโหมดจำลองโดยอัตโนมัติเนื่องจากพบปัญหาในการตั้งค่า"
+      );
       setSimulationMode(true);
     }
   }
-  
+
   return errors.length === 0;
 };
 
@@ -210,11 +223,14 @@ const getProviderFallback = async () => {
   let provider = null;
   const network = process.env.NEXT_PUBLIC_NETWORK || "sepolia";
   const errors = [];
-  
+
   // 1. ลองใช้ Alchemy ก่อน
   if (process.env.NEXT_PUBLIC_ALCHEMY_API_KEY) {
     try {
-      provider = new ethers.AlchemyProvider(network, process.env.NEXT_PUBLIC_ALCHEMY_API_KEY);
+      provider = new ethers.AlchemyProvider(
+        network,
+        process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
+      );
       // ทดสอบการเชื่อมต่อ
       await provider.getBlockNumber();
       console.log("เชื่อมต่อกับ Alchemy สำเร็จ");
@@ -223,11 +239,14 @@ const getProviderFallback = async () => {
       errors.push(`ไม่สามารถเชื่อมต่อกับ Alchemy: ${error}`);
     }
   }
-  
+
   // 2. ลองใช้ Infura ถ้า Alchemy ไม่สำเร็จ
   if (process.env.NEXT_PUBLIC_INFURA_API_KEY) {
     try {
-      provider = new ethers.InfuraProvider(network, process.env.NEXT_PUBLIC_INFURA_API_KEY);
+      provider = new ethers.InfuraProvider(
+        network,
+        process.env.NEXT_PUBLIC_INFURA_API_KEY
+      );
       // ทดสอบการเชื่อมต่อ
       await provider.getBlockNumber();
       console.log("เชื่อมต่อกับ Infura สำเร็จ");
@@ -236,7 +255,7 @@ const getProviderFallback = async () => {
       errors.push(`ไม่สามารถเชื่อมต่อกับ Infura: ${error}`);
     }
   }
-  
+
   // 3. ลองใช้ public provider ถ้าทั้ง Alchemy และ Infura ไม่สำเร็จ
   try {
     const publicRpcUrl = `https://${network}.publicnode.com`;
@@ -248,7 +267,7 @@ const getProviderFallback = async () => {
   } catch (error) {
     errors.push(`ไม่สามารถเชื่อมต่อกับ public provider: ${error}`);
   }
-  
+
   // 4. ถ้าทั้งหมดล้มเหลว ลองใช้ provider เริ่มต้น
   try {
     provider = new ethers.JsonRpcProvider();
@@ -257,10 +276,12 @@ const getProviderFallback = async () => {
   } catch (error) {
     errors.push(`ไม่สามารถเชื่อมต่อกับ default provider: ${error}`);
   }
-  
+
   // ถ้าไม่สามารถเชื่อมต่อกับ provider ใดๆ ได้
   console.error("ไม่สามารถเชื่อมต่อกับ provider ใดๆ ได้:", errors);
-  throw new Error("ไม่สามารถเชื่อมต่อกับ blockchain ได้: กรุณาตรวจสอบการเชื่อมต่อหรือเปิดใช้โหมดจำลอง");
+  throw new Error(
+    "ไม่สามารถเชื่อมต่อกับ blockchain ได้: กรุณาตรวจสอบการเชื่อมต่อหรือเปิดใช้โหมดจำลอง"
+  );
 };
 
 // Web3 Provider Component
@@ -342,9 +363,11 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
         // Save connection state to localStorage
         localStorage.setItem("walletConnected", "true");
-        
+
         // บันทึก address ลงใน cookie
-        document.cookie = `player_address=${accounts[0]}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+        document.cookie = `player_address=${accounts[0]}; path=/; max-age=${
+          60 * 60 * 24 * 30
+        }; SameSite=Lax`;
 
         // เรียกใช้ saveGameData API เพื่อสร้างข้อมูลผู้เล่นใหม่หรืออัพเดตข้อมูลเดิม
         try {
@@ -355,9 +378,18 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
             },
             body: JSON.stringify({ address: accounts[0] }),
           });
-          
+
           if (!response.ok) {
             console.warn("ไม่สามารถบันทึกข้อมูลผู้เล่นได้");
+            // แสดงข้อความเชื่อมต่อสำเร็จแม้จะบันทึกข้อมูลไม่สำเร็จ
+            toast.success("เชื่อมต่อสำเร็จ", {
+              description: `เชื่อมต่อกับกระเป๋าเงิน ${accounts[0].slice(
+                0,
+                6
+              )}...${accounts[0].slice(-4)} บนเครือข่าย ${getNetworkName(
+                currentChainId
+              )}`,
+            });
           } else {
             // แสดงข้อความเชื่อมต่อสำเร็จ
             toast.success("เชื่อมต่อสำเร็จ", {
@@ -368,6 +400,11 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
                 currentChainId
               )}`,
             });
+
+            // หน่วงเวลาเล็กน้อยแล้วนำทางไปยังหน้า dashboard
+            setTimeout(() => {
+              window.location.href = "/dashboard";
+            }, 1000);
           }
         } catch (error) {
           console.error("Error saving player data:", error);
@@ -393,9 +430,10 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     setLocalChainId(null);
     setLocalIsConnected(false);
     localStorage.removeItem("walletConnected");
-    
+
     // ลบ cookie player_address
-    document.cookie = "player_address=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    document.cookie =
+      "player_address=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
 
     // หยุดการทำงานของ autoAttack ทั้งหมด
     Object.values(autoAttackStopFunctions).forEach((stopFn) => {
@@ -537,35 +575,38 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
   ): Promise<boolean> => {
     try {
       if (!playerAddress) return false;
-      
+
       // ตรวจสอบโหมดจำลอง
       if (isSimulationMode()) {
         console.log("Using simulation mode for player registration check");
         return true; // สมมติว่าลงทะเบียนแล้วในโหมดจำลอง
       }
-      
+
       // ตรวจสอบบน blockchain จริง
       return await clientIsPlayerRegistered(playerAddress);
     } catch (error) {
       console.error("Error checking player registration:", error);
-      
+
       // ในกรณีที่มีข้อผิดพลาด ให้แสดงข้อความที่เป็นประโยชน์
       let errorMessage = "ไม่สามารถตรวจสอบการลงทะเบียนผู้เล่นได้";
-      
+
       if (error instanceof Error) {
         // ตรวจสอบว่าเป็นข้อผิดพลาดจากการเชื่อมต่อหรือไม่
-        if (error.message.includes("network") || error.message.includes("provider")) {
+        if (
+          error.message.includes("network") ||
+          error.message.includes("provider")
+        ) {
           errorMessage += ": ปัญหาการเชื่อมต่อกับ blockchain";
           toast.error(errorMessage, {
             description: "กำลังใช้ข้อมูลแบบออฟไลน์แทน",
           });
-          
+
           // เปิดใช้โหมดจำลองโดยอัตโนมัติ
           setSimulationMode(true);
           return true; // สมมติว่าลงทะเบียนแล้ว
         }
       }
-      
+
       return false;
     }
   };
@@ -587,29 +628,32 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
         toast.success("ลงทะเบียนผู้เล่นสำเร็จ (โหมดจำลอง)", {
           description: "ยินดีต้อนรับสู่การผจญภัย!",
         });
-        return { 
-          success: true, 
+        return {
+          success: true,
           txHash: result.txHash,
-          simulated: true 
+          simulated: true,
         };
       }
 
       // การตรวจสอบ contract address
       if (!process.env.NEXT_PUBLIC_GAME_CONTRACT_ADDRESS) {
-        console.error("Game contract address not found in environment variables");
+        console.error(
+          "Game contract address not found in environment variables"
+        );
         toast.error("ข้อผิดพลาดในการตั้งค่า", {
-          description: "ไม่พบที่อยู่ของ contract ในการตั้งค่า กำลังใช้โหมดจำลองแทน",
+          description:
+            "ไม่พบที่อยู่ของ contract ในการตั้งค่า กำลังใช้โหมดจำลองแทน",
         });
-        
+
         // เปิดใช้โหมดจำลองอัตโนมัติ
         setSimulationMode(true);
-        
+
         // ใช้การจำลองแทน
         const result = simulatePlayerRegistration(localAddress);
-        return { 
-          success: true, 
+        return {
+          success: true,
           txHash: result.txHash,
-          simulated: true 
+          simulated: true,
         };
       }
 
@@ -650,13 +694,18 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
           } else if (txError.code === "INSUFFICIENT_FUNDS") {
             toast.error("เหรียญ ETH ไม่เพียงพอ", {
               id: toastId,
-              description: "คุณมีเหรียญ ETH ไม่เพียงพอสำหรับค่า gas ในการทำธุรกรรม",
+              description:
+                "คุณมีเหรียญ ETH ไม่เพียงพอสำหรับค่า gas ในการทำธุรกรรม",
             });
             return { success: false, error: "Insufficient funds for gas" };
-          } else if (txError.message && txError.message.includes("gas required exceeds")) {
+          } else if (
+            txError.message &&
+            txError.message.includes("gas required exceeds")
+          ) {
             toast.error("ค่า gas สูงเกินไป", {
               id: toastId,
-              description: "ธุรกรรมต้องการค่า gas สูงเกินไป ลองอีกครั้งในภายหลัง",
+              description:
+                "ธุรกรรมต้องการค่า gas สูงเกินไป ลองอีกครั้งในภายหลัง",
             });
             return { success: false, error: "Gas limit exceeded" };
           }
@@ -665,33 +714,35 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
             id: toastId,
             description: "เกิดข้อผิดพลาดในการทำธุรกรรม กรุณาลองใหม่อีกครั้ง",
           });
-          return { success: false, error: txError.message || "Transaction failed" };
+          return {
+            success: false,
+            error: txError.message || "Transaction failed",
+          };
         }
       } catch (providerError: any) {
         console.error("Provider error:", providerError);
-        
+
         // เปิดใช้โหมดจำลองอัตโนมัติเมื่อเกิดข้อผิดพลาดจาก provider
         toast.error("ไม่สามารถเชื่อมต่อกับ blockchain ได้", {
           description: "กำลังเปิดใช้โหมดจำลองโดยอัตโนมัติ",
         });
-        
+
         setSimulationMode(true);
-        
+
         // ใช้การจำลองแทน
         const result = simulatePlayerRegistration(localAddress);
-        return { 
-          success: true, 
+        return {
+          success: true,
           txHash: result.txHash,
-          simulated: true 
+          simulated: true,
         };
       }
     } catch (error: any) {
       console.error("Error in register player:", error);
       toast.error("การลงทะเบียนล้มเหลว", {
-        description:
-          error.message || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ",
+        description: error.message || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ",
       });
-      
+
       return { success: false, error: error.message || "Unknown error" };
     }
   };
@@ -776,19 +827,19 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       if (isSimulationMode()) {
         console.log("กำลังใช้โหมดจำลองสำหรับ mintNFT");
         const toastId = toast.loading("กำลังสร้าง NFT...");
-        
+
         // Extract metadata components for simulation
         const { uri, name, description, image } = metadata;
-        
+
         // สร้าง NFT ในโหมดจำลอง โดยส่งพารามิเตอร์ที่จำเป็น
         const result = await mockMintNFT(
-          localAddress || "0xSimulatedAddress", 
-          uri || "", 
-          name || "Unnamed NFT", 
+          localAddress || "0xSimulatedAddress",
+          uri || "",
+          name || "Unnamed NFT",
           description || "No description",
           image
         );
-        
+
         toast.success("สร้าง NFT สำเร็จ (โหมดจำลอง)!", { id: toastId });
         return result;
       }
@@ -810,39 +861,49 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
         // Get current provider and signer
         const { signer } = await getProviderAndSigner();
-        
+
         // Log transaction details for debugging
         console.log("Minting NFT with metadata:", metadata);
-        console.log("Using contract address:", process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS);
+        console.log(
+          "Using contract address:",
+          process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS
+        );
         console.log("From address:", localAddress);
-        
+
         // Increase gas limit to avoid reverts
         const result = await clientMintNFT(signer, localAddress, metadata);
-        
+
         toast.success("สร้าง NFT สำเร็จ!", { id: toastId });
         return result;
       } catch (error: any) {
         console.error("Error minting NFT:", error);
-        
+
         // ถ้าเกิดข้อผิดพลาดให้ลองใช้โหมดจำลองแทน
-        if (error.code && (error.code === "NETWORK_ERROR" || error.code === "UNPREDICTABLE_GAS_LIMIT" || error.code === "INSUFFICIENT_FUNDS")) {
-          console.log("เกิดข้อผิดพลาดในการเชื่อมต่อบล็อกเชน กำลังใช้โหมดจำลองแทน");
-          
+        if (
+          error.code &&
+          (error.code === "NETWORK_ERROR" ||
+            error.code === "UNPREDICTABLE_GAS_LIMIT" ||
+            error.code === "INSUFFICIENT_FUNDS")
+        ) {
+          console.log(
+            "เกิดข้อผิดพลาดในการเชื่อมต่อบล็อกเชน กำลังใช้โหมดจำลองแทน"
+          );
+
           // Extract metadata components for simulation
           const { uri, name, description, image } = metadata;
-          
+
           const result = await mockMintNFT(
-            localAddress || "0xSimulatedAddress", 
-            uri || "", 
-            name || "Unnamed NFT", 
+            localAddress || "0xSimulatedAddress",
+            uri || "",
+            name || "Unnamed NFT",
             description || "No description",
             image
           );
-          
+
           toast.success("สร้าง NFT สำเร็จ (โหมดจำลอง)!", { id: toastId });
           return result;
         }
-        
+
         // Detailed error handling for different scenarios
         if (error.code === "ACTION_REJECTED") {
           toast.error("การสร้าง NFT ถูกยกเลิก", {
@@ -852,7 +913,8 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
         } else if (error.code === "CALL_EXCEPTION") {
           toast.error("การสร้าง NFT ล้มเหลว", {
             id: toastId,
-            description: "เกิดข้อผิดพลาดในสัญญาอัจฉริยะ: " + 
+            description:
+              "เกิดข้อผิดพลาดในสัญญาอัจฉริยะ: " +
               (error.reason || "อาจไม่มีสิทธิ์หรือไม่มี gas เพียงพอ"),
           });
         } else {
