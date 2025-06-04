@@ -15,7 +15,13 @@ import { QueryClient } from "@tanstack/react-query";
 // Make sure environment variables are present with fallbacks
 const alchemyApiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || "";
 const infuraApiKey = process.env.NEXT_PUBLIC_INFURA_API_KEY || "";
-const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || "";
+// WalletConnect requires a projectId. In development we allow a fallback value
+// so the build doesn't fail when the variable is missing.
+let walletConnectProjectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || "";
+if (!walletConnectProjectId) {
+  // Use a dummy project id to prevent runtime errors when developing locally
+  walletConnectProjectId = "demo-project-id";
+}
 const networkName = process.env.NEXT_PUBLIC_NETWORK || "sepolia";
 
 // Log environment values for debugging (secure way)
