@@ -41,6 +41,14 @@ import {
 let isWalletConnectInitialized = false;
 
 // Web3 Context Type
+interface RegisterPlayerResult {
+  success: boolean;
+  txHash?: string;
+  error?: string;
+  message?: string;
+  simulated?: boolean;
+}
+
 interface Web3ContextType {
   address: string | null;
   chainId: number | null;
@@ -58,7 +66,7 @@ interface Web3ContextType {
   batchUpgradeCharacters: (characterIds: number[]) => Promise<any>;
   changeArea: (newArea: string) => Promise<any>;
   gainExperience: (characterId: number, amount: number) => Promise<any>;
-  registerPlayer: () => Promise<any>;
+  registerPlayer: () => Promise<RegisterPlayerResult>;
   isPlayerRegistered: (address: string) => Promise<boolean>;
   batchTransactions: (
     transactions: Array<{
@@ -106,7 +114,7 @@ const Web3Context = createContext<Web3ContextType>({
   batchUpgradeCharacters: async () => ({}),
   changeArea: async () => ({}),
   gainExperience: async () => ({}),
-  registerPlayer: async () => ({}),
+  registerPlayer: async () => ({ success: false }),
   isPlayerRegistered: async () => false,
   batchTransactions: async () => ({}),
   autoAttack: async () => ({}),

@@ -87,7 +87,7 @@ export default function DashboardClient({
 
       const result = await registerPlayer();
 
-      if (result && result.hash) {
+      if (result && result.txHash) {
         toast.success("ลงทะเบียนสำเร็จ", {
           description: "ตอนนี้คุณสามารถเล่นเกมบนบล็อกเชนได้แล้ว!",
         });
