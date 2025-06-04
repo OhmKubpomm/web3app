@@ -95,11 +95,8 @@ export default function WalletStatus() {
         description: "กำลังนำทางไปยังหน้าเกม...",
       });
 
-      // หน่วงเวลาเล็กน้อยเพื่อให้ toast แสดงก่อนนำทาง
-      setTimeout(() => {
-        // นำทางไปยัง dashboard ด้วย window.location.href เพื่อให้แน่ใจว่ามีการโหลดหน้าใหม่
-        window.location.href = "/dashboard";
-      }, 500);
+      // นำทางไปยังหน้าเกมเมื่อเตรียมข้อมูลเสร็จแล้ว
+      router.push("/dashboard");
     } catch (error) {
       console.error("Error preparing game entry:", error);
 
@@ -113,10 +110,8 @@ export default function WalletStatus() {
         60 * 60 * 24 * 30
       }; SameSite=Lax`;
 
-      // นำทางไปยัง dashboard แม้จะมีข้อผิดพลาด ด้วย window.location.href
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 1000);
+      // พยายามนำทางไปยังหน้าเกมแม้เกิดข้อผิดพลาด
+      router.push("/dashboard");
     } finally {
       setIsNavigating(false);
     }
