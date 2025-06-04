@@ -186,7 +186,7 @@ export default function NFTInventory({
         name: itemName,
         description: itemDescription,
         uri: `ipfs://adventure-${Date.now()}`,
-        image: `/images/inventory/${selectedType}-${selectedRarity}.png`,
+        image: `${selectedType}-${selectedRarity}.png`,
         attributes: [
           { trait_type: "Type", value: selectedType },
           { trait_type: "Rarity", value: selectedRarity },
@@ -220,7 +220,7 @@ export default function NFTInventory({
           description: itemDescription,
           type: selectedType,
           rarity: selectedRarity,
-          image: `/images/inventory/${selectedType}-${selectedRarity}.png`,
+          image: `${selectedType}-${selectedRarity}.png`,
           tokenId: result.tokenId,
           txHash: result.txHash,
           mintedAt: new Date().toISOString(),
