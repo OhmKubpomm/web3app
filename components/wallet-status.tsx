@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useWeb3 } from "@/lib/web3-client";
@@ -16,6 +16,10 @@ export default function WalletStatus() {
   );
   const [debugInfo, setDebugInfo] = useState<string>("");
   const [isNavigating, setIsNavigating] = useState(false);
+  const hasAutoNavigated = useRef(false);
+
+  // เลือกใช้ address จาก cookie ก่อน แล้วจึงใช้จาก web3 hook
+  const activeAddress = addressFromCookie || address;
 
   // ตรวจสอบ cookie เมื่อ component mount
   useEffect(() => {
@@ -55,8 +59,13 @@ export default function WalletStatus() {
     }
   }, [address]);
 
-  // เลือกใช้ address จาก cookie ก่อน แล้วจึงใช้จาก web3 hook
-  const activeAddress = addressFromCookie || address;
+  // เข้าสู่เกมอัตโนมัติเมื่อมีที่อยู่กระเป๋าเงิน
+  useEffect(() => {
+    if (activeAddress && !hasAutoNavigated.current && !isNavigating) {
+      hasAutoNavigated.current = true;
+      handleGameEntry();
+    }
+  }, [activeAddress]);
 
   // ฟังก์ชันสำหรับนำทางไปยัง dashboard
   const handleGameEntry = async () => {
