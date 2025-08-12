@@ -24,8 +24,9 @@ import {
 } from "@/lib/contracts/game-client";
 
 import {
-  mintNFT as clientMintNFT,
-  batchMintNFT as clientBatchMintNFT,
+  mintAccessNFT as clientMintAccessNFT,
+  mintAsset as clientMintAsset,
+  burnAsset as clientBurnAsset,
 } from "@/lib/nft-client";
 
 // นำเข้าฟังก์ชันจากโมดูลจำลอง
@@ -37,9 +38,6 @@ import {
   simulateMintNFT as mockMintNFT,
 } from "@/lib/simulation-mode";
 
-// เพิ่มตัวแปรเพื่อตรวจสอบสถานะการเชื่อมต่อ
-let isWalletConnectInitialized = false;
-
 // Web3 Context Type
 interface Web3ContextType {
   address: string | null;
@@ -49,8 +47,9 @@ interface Web3ContextType {
   connect: () => Promise<void>;
   disconnect: () => void;
   switchNetwork: (chainId: number) => Promise<void>;
-  mintNFT: (metadata: any) => Promise<any>;
-  batchMintNFT: (metadataArray: any[]) => Promise<any>;
+  mintAccessNFT: () => Promise<any>;
+  mintAsset: (tokenId: number, amount: number) => Promise<any>;
+  burnAsset: (tokenId: number, amount: number) => Promise<any>;
   attackMonster: (monsterId: number) => Promise<any>;
   multiAttack: (attackCount: number) => Promise<any>;
   batchAttack: (monsterIds: number[]) => Promise<any>;
@@ -97,8 +96,9 @@ const Web3Context = createContext<Web3ContextType>({
   connect: async () => {},
   disconnect: () => {},
   switchNetwork: async () => {},
-  mintNFT: async () => ({}),
-  batchMintNFT: async () => ({}),
+  mintAccessNFT: async () => ({}),
+  mintAsset: async () => ({}),
+  burnAsset: async () => ({}),
   attackMonster: async () => ({}),
   multiAttack: async () => ({}),
   batchAttack: async () => ({}),
@@ -286,38 +286,14 @@ const getProviderFallback = async () => {
 
 // Web3 Provider Component
 export function Web3Provider({ children }: { children: React.ReactNode }) {
-  const { address, isConnected } = useAccount();
-  const chainId = useChainId();
+  const { address, isConnected, chainId, isConnecting } = useAccount();
   const { disconnectAsync } = useDisconnect();
   const { openConnectModal } = useConnectModal();
 
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [localAddress, setLocalAddress] = useState<string | null>(null);
-  const [localChainId, setLocalChainId] = useState<number | null>(null);
-  const [localIsConnected, setLocalIsConnected] = useState(false);
   const [transactions, setTransactions] = useState<Record<string, any>>({});
   const [autoAttackStopFunctions, setAutoAttackStopFunctions] = useState<
     Record<string, () => any>
   >({});
-
-  // Update local state when wagmi state changes
-  useEffect(() => {
-    if (address) {
-      setLocalAddress(address);
-      setLocalIsConnected(isConnected);
-    } else {
-      setLocalAddress(null);
-      setLocalIsConnected(false);
-    }
-  }, [address, isConnected]);
-
-  useEffect(() => {
-    if (chainId) {
-      setLocalChainId(chainId);
-    } else {
-      setLocalChainId(null);
-    }
-  }, [chainId]);
 
   // ตรวจสอบการตั้งค่า Web3 เมื่อ component ถูกโหลด
   useEffect(() => {
@@ -326,97 +302,12 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   // Connect to wallet
   const connect = async () => {
-    if (!hasMetaMask() && !openConnectModal) {
-      toast.error("MetaMask ไม่พบ", {
-        description: "กรุณาติดตั้ง MetaMask ก่อนเชื่อมต่อกระเป๋าเงิน",
+    if (openConnectModal) {
+      openConnectModal();
+    } else {
+      toast.error("ไม่สามารถเชื่อมต่อ Wallet ได้", {
+        description: "ฟังก์ชันเชื่อมต่อ Wallet ไม่พร้อมใช้งาน",
       });
-      return;
-    }
-
-    try {
-      setIsConnecting(true);
-
-      // ตรวจสอบว่ามีการเชื่อมต่อแล้วหรือไม่
-      if (isWalletConnectInitialized && openConnectModal) {
-        openConnectModal();
-        return;
-      }
-
-      if (openConnectModal) {
-        isWalletConnectInitialized = true;
-        openConnectModal();
-      } else {
-        // Fallback if RainbowKit doesn't work
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const accounts = await provider.send("eth_requestAccounts", []);
-
-        if (accounts.length === 0) {
-          throw new Error("ไม่พบบัญชี");
-        }
-
-        const network = await provider.getNetwork();
-        const currentChainId = Number(network.chainId);
-
-        setLocalAddress(accounts[0]);
-        setLocalChainId(currentChainId);
-        setLocalIsConnected(true);
-
-        // Save connection state to localStorage
-        localStorage.setItem("walletConnected", "true");
-
-        // บันทึก address ลงใน cookie
-        document.cookie = `player_address=${accounts[0]}; path=/; max-age=${
-          60 * 60 * 24 * 30
-        }; SameSite=Lax`;
-
-        // เรียกใช้ saveGameData API เพื่อสร้างข้อมูลผู้เล่นใหม่หรืออัพเดตข้อมูลเดิม
-        try {
-          const response = await fetch("/api/save-player", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ address: accounts[0] }),
-          });
-
-          if (!response.ok) {
-            console.warn("ไม่สามารถบันทึกข้อมูลผู้เล่นได้");
-            // แสดงข้อความเชื่อมต่อสำเร็จแม้จะบันทึกข้อมูลไม่สำเร็จ
-            toast.success("เชื่อมต่อสำเร็จ", {
-              description: `เชื่อมต่อกับกระเป๋าเงิน ${accounts[0].slice(
-                0,
-                6
-              )}...${accounts[0].slice(-4)} บนเครือข่าย ${getNetworkName(
-                currentChainId
-              )}`,
-            });
-          } else {
-            // แสดงข้อความเชื่อมต่อสำเร็จ
-            toast.success("เชื่อมต่อสำเร็จ", {
-              description: `เชื่อมต่อกับกระเป๋าเงิน ${accounts[0].slice(
-                0,
-                6
-              )}...${accounts[0].slice(-4)} บนเครือข่าย ${getNetworkName(
-                currentChainId
-              )}`,
-            });
-
-            // หน่วงเวลาเล็กน้อยแล้วนำทางไปยังหน้า dashboard
-            setTimeout(() => {
-              window.location.href = "/dashboard";
-            }, 1000);
-          }
-        } catch (error) {
-          console.error("Error saving player data:", error);
-        }
-      }
-    } catch (error) {
-      console.error("Error connecting wallet:", error);
-      toast.error("การเชื่อมต่อล้มเหลว", {
-        description: "ไม่สามารถเชื่อมต่อกระเป๋าเงินได้ กรุณาลองใหม่อีกครั้ง",
-      });
-    } finally {
-      setIsConnecting(false);
     }
   };
 
@@ -426,9 +317,6 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       disconnectAsync();
     }
 
-    setLocalAddress(null);
-    setLocalChainId(null);
-    setLocalIsConnected(false);
     localStorage.removeItem("walletConnected");
 
     // ลบ cookie player_address
@@ -553,9 +441,6 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Update chainId
-      setLocalChainId(targetChainId);
-
       toast.success("เปลี่ยนเครือข่ายสำเร็จ", {
         description: `เปลี่ยนเครือข่ายเป็น ${getNetworkName(
           targetChainId
@@ -613,7 +498,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   // Register player
   const registerPlayer = async () => {
-    if (!localAddress || !localChainId) {
+    if (!address || !chainId) {
       toast.error("ไม่ได้เชื่อมต่อ", {
         description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนลงทะเบียน",
       });
@@ -624,7 +509,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       // ตรวจสอบโหมดจำลอง
       if (isSimulationMode()) {
         console.log("Using simulation mode for player registration");
-        const result = simulatePlayerRegistration(localAddress);
+        const result = simulatePlayerRegistration(address);
         toast.success("ลงทะเบียนผู้เล่นสำเร็จ (โหมดจำลอง)", {
           description: "ยินดีต้อนรับสู่การผจญภัย!",
         });
@@ -649,7 +534,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
         setSimulationMode(true);
 
         // ใช้การจำลองแทน
-        const result = simulatePlayerRegistration(localAddress);
+        const result = simulatePlayerRegistration(address);
         return {
           success: true,
           txHash: result.txHash,
@@ -662,7 +547,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
         const { signer } = await getProviderAndSigner();
 
         // Check if already registered
-        const isRegistered = await isPlayerRegistered(localAddress);
+        const isRegistered = await isPlayerRegistered(address);
         if (isRegistered) {
           return { success: true, message: "ผู้เล่นลงทะเบียนแล้ว" };
         }
@@ -730,7 +615,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
         setSimulationMode(true);
 
         // ใช้การจำลองแทน
-        const result = simulatePlayerRegistration(localAddress);
+        const result = simulatePlayerRegistration(address);
         return {
           success: true,
           txHash: result.txHash,
@@ -749,7 +634,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   // Add experience to character (simulation since contract doesn't have this function)
   const gainExperience = async (characterId: number, amount: number) => {
-    if (!localAddress || !localChainId) {
+    if (!address || !chainId) {
       toast.error("ไม่ได้เชื่อมต่อ", {
         description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนเพิ่มประสบการณ์",
       });
@@ -758,13 +643,13 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
     try {
       // Check if player is registered
-      const isRegistered = await isPlayerRegistered(localAddress);
+      const isRegistered = await isPlayerRegistered(address);
       if (!isRegistered) {
         await registerPlayer();
       }
 
       // Store the experience in localStorage to persist between sessions
-      const storageKey = `character_${characterId}_xp_${localAddress}`;
+      const storageKey = `character_${characterId}_xp_${address}`;
       let currentXP = 0;
 
       try {
@@ -820,203 +705,97 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Mint NFT
-  const mintNFT = async (metadata: any) => {
+  // Mint Access NFT
+  const mintAccessNFT = async () => {
+    if (!address) throw new Error("Wallet not connected");
+    const toastId = toast.loading("Minting Access Token...");
     try {
-      // ถ้าอยู่ในโหมดจำลอง ให้ใช้ฟังก์ชันจำลองแทน
-      if (isSimulationMode()) {
-        console.log("กำลังใช้โหมดจำลองสำหรับ mintNFT");
-        const toastId = toast.loading("กำลังสร้าง NFT...");
+      const { signer } = await getProviderAndSigner();
+      const result = await clientMintAccessNFT(signer);
 
-        // Extract metadata components for simulation
-        const { uri, name, description, image } = metadata;
+      // After successful mint, record it in our DB
+      await fetch('/api/nfts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tokenId: 0, // ACCESS_TOKEN_ID is 0
+          ownerAddress: address,
+          contractAddress: process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS,
+          chainId: chainId,
+          tokenUri: `${process.env.NEXT_PUBLIC_NFT_METADATA_BASE_URL}/0.json`,
+        }),
+      });
 
-        // สร้าง NFT ในโหมดจำลอง โดยส่งพารามิเตอร์ที่จำเป็น
-        const result = await mockMintNFT(
-          localAddress || "0xSimulatedAddress",
-          uri || "",
-          name || "Unnamed NFT",
-          description || "No description",
-          image
-        );
-
-        toast.success("สร้าง NFT สำเร็จ (โหมดจำลอง)!", { id: toastId });
-        return result;
-      }
-
-      if (!localAddress) {
-        await connect();
-        return;
-      }
-
-      setIsConnecting(true);
-      const toastId = toast.loading("กำลังสร้าง NFT...");
-
-      try {
-        // Check if player is registered first
-        const isRegistered = await isPlayerRegistered(localAddress);
-        if (!isRegistered) {
-          await registerPlayer();
-        }
-
-        // Get current provider and signer
-        const { signer } = await getProviderAndSigner();
-
-        // Log transaction details for debugging
-        console.log("Minting NFT with metadata:", metadata);
-        console.log(
-          "Using contract address:",
-          process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS
-        );
-        console.log("From address:", localAddress);
-
-        // Increase gas limit to avoid reverts
-        const result = await clientMintNFT(signer, localAddress, metadata);
-
-        toast.success("สร้าง NFT สำเร็จ!", { id: toastId });
-        return result;
-      } catch (error: any) {
-        console.error("Error minting NFT:", error);
-
-        // ถ้าเกิดข้อผิดพลาดให้ลองใช้โหมดจำลองแทน
-        if (
-          error.code &&
-          (error.code === "NETWORK_ERROR" ||
-            error.code === "UNPREDICTABLE_GAS_LIMIT" ||
-            error.code === "INSUFFICIENT_FUNDS")
-        ) {
-          console.log(
-            "เกิดข้อผิดพลาดในการเชื่อมต่อบล็อกเชน กำลังใช้โหมดจำลองแทน"
-          );
-
-          // Extract metadata components for simulation
-          const { uri, name, description, image } = metadata;
-
-          const result = await mockMintNFT(
-            localAddress || "0xSimulatedAddress",
-            uri || "",
-            name || "Unnamed NFT",
-            description || "No description",
-            image
-          );
-
-          toast.success("สร้าง NFT สำเร็จ (โหมดจำลอง)!", { id: toastId });
-          return result;
-        }
-
-        // Detailed error handling for different scenarios
-        if (error.code === "ACTION_REJECTED") {
-          toast.error("การสร้าง NFT ถูกยกเลิก", {
-            id: toastId,
-            description: "คุณปฏิเสธการทำธุรกรรมใน wallet",
-          });
-        } else if (error.code === "CALL_EXCEPTION") {
-          toast.error("การสร้าง NFT ล้มเหลว", {
-            id: toastId,
-            description:
-              "เกิดข้อผิดพลาดในสัญญาอัจฉริยะ: " +
-              (error.reason || "อาจไม่มีสิทธิ์หรือไม่มี gas เพียงพอ"),
-          });
-        } else {
-          toast.error("การสร้าง NFT ล้มเหลว", {
-            id: toastId,
-            description: error.message || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ",
-          });
-        }
-        throw error;
-      } finally {
-        setIsConnecting(false);
-      }
-    } catch (error) {
-      console.error("Error in mintNFT function:", error);
+      toast.success("Access Token Minted!", { id: toastId });
+      return { ...result, tokenId: 0 };
+    } catch (error: any) {
+      console.error("Error minting access NFT:", error);
+      toast.error("Failed to mint Access Token", { id: toastId, description: error.message });
       throw error;
     }
   };
 
-  // Batch Mint NFT
-  const batchMintNFT = async (metadataArray: any[]) => {
-    if (!localAddress || !localChainId) {
-      toast.error("ไม่ได้เชื่อมต่อ", {
-        description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนสร้าง NFT",
-      });
-      return { success: false, error: "ไม่ได้เชื่อมต่อกระเป๋าเงิน" };
-    }
-
+  // Mint Asset
+  const mintAsset = async (tokenId: number, amount: number) => {
+    if (!address) throw new Error("Wallet not connected");
+    const toastId = toast.loading(`Minting ${amount} of asset #${tokenId}...`);
     try {
-      // Create Provider and Signer
       const { signer } = await getProviderAndSigner();
+      const result = await clientMintAsset(signer, tokenId, amount);
 
-      // Show toast when transaction starts
-      const toastId = toast.loading(`กำลังสร้าง ${metadataArray.length} NFTs`, {
-        description: "กำลังรอการยืนยันจากบล็อกเชน...",
+      // After successful mint, record it in our DB
+      await fetch('/api/nfts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              tokenId: tokenId,
+              ownerAddress: address,
+              contractAddress: process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS,
+              chainId: chainId,
+              tokenUri: `${process.env.NEXT_PUBLIC_NFT_METADATA_BASE_URL}/${tokenId}.json`,
+          }),
       });
 
-      try {
-        // Call batchMintNFT function
-        const result = await clientBatchMintNFT(
-          signer,
-          localAddress,
-          metadataArray
-        );
-
-        // Update toast when successful
-        toast.success(`สร้าง ${result.tokenIds.length} NFTs สำเร็จ`, {
-          id: toastId,
-        });
-
-        return result;
-      } catch (txError: any) {
-        console.error("Transaction error:", txError);
-
-        // Handle user rejection
-        if (txError.code === 4001) {
-          // User rejected transaction
-          toast.error("การสร้าง NFT ถูกยกเลิก", {
-            id: toastId,
-            description: "คุณได้ยกเลิกการทำธุรกรรม",
-          });
-          return { success: false, error: "User rejected transaction" };
-        }
-
-        // Handle transaction reverted
-        if (txError.message && txError.message.includes("CALL_EXCEPTION")) {
-          console.log("Transaction reverted, checking for more details");
-
-          toast.error(`การสร้าง NFT หลายชิ้นล้มเหลว`, {
-            id: toastId,
-            description:
-              "ธุรกรรมถูกยกเลิกบนบล็อกเชน กรุณาตรวจสอบว่าคุณมีสิทธิ์ในการสร้าง NFT",
-          });
-
-          // Create simulated NFTs for better UX
-          const simulatedTokenIds = Array.from(
-            { length: metadataArray.length },
-            (_, i) => Math.floor(Math.random() * 1000) + 1000 + i
-          );
-
-          return {
-            success: true,
-            tokenIds: simulatedTokenIds,
-            txHash: "0x" + Math.random().toString(16).substring(2, 42),
-            simulated: true,
-          };
-        }
-
-        throw txError;
-      }
+      toast.success("Asset Minted!", { id: toastId });
+      return { ...result, tokenId };
     } catch (error: any) {
-      console.error("Error batch minting NFTs:", error);
-      toast.error("สร้าง NFT หลายชิ้นไม่สำเร็จ", {
-        description: error.message || "เกิดข้อผิดพลาดในการสร้าง NFT",
+      console.error(`Error minting asset #${tokenId}:`, error);
+      toast.error("Failed to mint asset", { id: toastId, description: error.message });
+      throw error;
+    }
+  };
+
+  // Burn Asset
+  const burnAsset = async (tokenId: number, amount: number) => {
+    if (!address) throw new Error("Wallet not connected");
+    const toastId = toast.loading(`Burning ${amount} of asset #${tokenId}...`);
+    try {
+      const { signer } = await getProviderAndSigner();
+      const result = await clientBurnAsset(signer, address, tokenId, amount);
+
+      // After successful burn, remove it from our DB
+      await fetch('/api/nfts', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              tokenId: tokenId,
+              contractAddress: process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS,
+              chainId: chainId,
+          }),
       });
 
-      return { success: false, error: error.message };
+      toast.success("Asset Burnt!", { id: toastId });
+      return result;
+    } catch (error: any) {
+      console.error(`Error burning asset #${tokenId}:`, error);
+      toast.error("Failed to burn asset", { id: toastId, description: error.message });
+      throw error;
     }
   };
 
   // Attack monster
   const attackMonster = async (monsterId: number) => {
-    if (!localAddress || !localChainId) {
+    if (!address || !chainId) {
       toast.error("ไม่ได้เชื่อมต่อ", {
         description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนโจมตีมอนสเตอร์",
       });
@@ -1028,7 +807,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       const { signer } = await getProviderAndSigner();
 
       // Check if player is registered
-      const isRegistered = await isPlayerRegistered(localAddress);
+      const isRegistered = await isPlayerRegistered(address);
       if (!isRegistered) {
         // Register player if not registered
         const registerResult = await registerPlayer();
@@ -1115,7 +894,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   // Multi-attack
   const multiAttack = async (attackCount: number) => {
-    if (!localAddress || !localChainId) {
+    if (!address || !chainId) {
       toast.error("ไม่ได้เชื่อมต่อ", {
         description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนโจมตีมอนสเตอร์",
       });
@@ -1127,7 +906,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       const { signer } = await getProviderAndSigner();
 
       // Check if player is registered
-      const isRegistered = await isPlayerRegistered(localAddress);
+      const isRegistered = await isPlayerRegistered(address);
       if (!isRegistered) {
         // Register player if not registered
         const registerResult = await registerPlayer();
@@ -1215,7 +994,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   // Batch Attack
   const batchAttack = async (monsterIds: number[]) => {
-    if (!localAddress || !localChainId) {
+    if (!address || !chainId) {
       toast.error("ไม่ได้เชื่อมต่อ", {
         description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนโจมตีมอนสเตอร์",
       });
@@ -1227,7 +1006,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       const { signer } = await getProviderAndSigner();
 
       // Check if player is registered
-      const isRegistered = await isPlayerRegistered(localAddress);
+      const isRegistered = await isPlayerRegistered(address);
       if (!isRegistered) {
         // Register player if not registered
         const registerResult = await registerPlayer();
@@ -1318,7 +1097,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   // Upgrade character
   const upgradeCharacter = async (characterId: number) => {
-    if (!localAddress || !localChainId) {
+    if (!address || !chainId) {
       toast.error("ไม่ได้เชื่อมต่อ", {
         description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนอัพเกรดตัวละคร",
       });
@@ -1330,7 +1109,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       const { signer } = await getProviderAndSigner();
 
       // Check if player is registered
-      const isRegistered = await isPlayerRegistered(localAddress);
+      const isRegistered = await isPlayerRegistered(address);
       if (!isRegistered) {
         // Register player if not registered
         const registerResult = await registerPlayer();
@@ -1413,7 +1192,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   // Batch Upgrade Characters
   const batchUpgradeCharacters = async (characterIds: number[]) => {
-    if (!localAddress || !localChainId) {
+    if (!address || !chainId) {
       toast.error("ไม่ได้เชื่อมต่อ", {
         description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนอัพเกรดตัวละคร",
       });
@@ -1425,7 +1204,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       const { signer } = await getProviderAndSigner();
 
       // Check if player is registered
-      const isRegistered = await isPlayerRegistered(localAddress);
+      const isRegistered = await isPlayerRegistered(address);
       if (!isRegistered) {
         // Register player if not registered
         const registerResult = await registerPlayer();
@@ -1514,7 +1293,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   // Change area
   const changeArea = async (newArea: string) => {
-    if (!localAddress || !localChainId) {
+    if (!address || !chainId) {
       toast.error("ไม่ได้เชื่อมต่อ", {
         description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนเปลี่ยนพื้นที่",
       });
@@ -1526,7 +1305,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       const { signer } = await getProviderAndSigner();
 
       // Check if player is registered
-      const isRegistered = await isPlayerRegistered(localAddress);
+      const isRegistered = await isPlayerRegistered(address);
       if (!isRegistered) {
         // Register player if not registered
         const registerResult = await registerPlayer();
@@ -1609,7 +1388,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       params: any[];
     }>
   ) => {
-    if (!localAddress || !localChainId) {
+    if (!address || !chainId) {
       toast.error("ไม่ได้เชื่อมต่อ", {
         description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนทำธุรกรรม",
       });
@@ -1636,7 +1415,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     intervalSeconds: number,
     maxCount: number
   ) => {
-    if (!localAddress || !localChainId) {
+    if (!address || !chainId) {
       toast.error("ไม่ได้เชื่อมต่อ", {
         description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนโจมตีอัตโนมัติ",
       });
@@ -1696,7 +1475,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     intervalSeconds: number,
     maxCount: number
   ) => {
-    if (!localAddress || !localChainId) {
+    if (!address || !chainId) {
       toast.error("ไม่ได้เชื่อมต่อ", {
         description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนโจมตีอัตโนมัติ",
       });
@@ -1756,7 +1535,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     intervalSeconds: number,
     maxCount: number
   ) => {
-    if (!localAddress || !localChainId) {
+    if (!address || !chainId) {
       toast.error("ไม่ได้เชื่อมต่อ", {
         description: "กรุณาเชื่อมต่อกระเป๋าเงินก่อนโจมตีอัตโนมัติ",
       });
@@ -1833,15 +1612,16 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
   return (
     <Web3Context.Provider
       value={{
-        address: localAddress,
-        chainId: localChainId,
+        address: address || null,
+        chainId: chainId || null,
         isConnecting,
-        isConnected: localIsConnected,
+        isConnected: isConnected,
         connect,
         disconnect,
         switchNetwork,
-        mintNFT,
-        batchMintNFT,
+        mintAccessNFT,
+        mintAsset,
+        burnAsset,
         attackMonster,
         multiAttack,
         batchAttack,

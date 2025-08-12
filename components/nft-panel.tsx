@@ -39,7 +39,7 @@ export default function NFTPanel({
   onMintNFT,
   isProcessing,
 }: NFTPanelProps) {
-  const { address, chainId, mintNFT } = useWeb3();
+  const { address, chainId } = useWeb3(); // NOTE: Temporarily removed mintNFT
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [mintingStatus, setMintingStatus] = useState<
@@ -319,6 +319,9 @@ export default function NFTPanel({
 
   // ฟังก์ชันยืนยันการ mint NFT
   const handleConfirmMint = async () => {
+    toast.info("This feature is being updated.");
+    return;
+    /*
     if (!selectedItem) return;
 
     setMintingStatus("processing");
@@ -417,6 +420,7 @@ export default function NFTPanel({
         description: error.message || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ",
       });
     }
+    */
   };
 
   // ฟังก์ชันลองใหม่
@@ -628,12 +632,8 @@ export default function NFTPanel({
                         size="sm"
                         variant="outline"
                         className="flex items-center gap-1 border-purple-500/50 hover:bg-purple-500/20"
-                        disabled={
-                          gameData.coins < item.cost ||
-                          isProcessing ||
-                          mintedNFTs.length >= inventoryLimit
-                        }
-                        onClick={() => handleMintStart(item)}
+                        disabled={true}
+                        onClick={() => toast.info("This feature is being updated.")}
                       >
                         <Coins className="h-3 w-3 text-yellow-400" />
                         <span>{item.cost}</span>

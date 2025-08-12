@@ -70,7 +70,7 @@ export default function NFTInventory({
   isProcessing,
 }: NFTInventoryProps) {
   const { t, locale } = useI18n();
-  const { mintNFT } = useWeb3();
+  // const { mintNFT } = useWeb3(); // NOTE: Temporarily disabled to fix build
   const { address: wagmiAddress } = useAccount();
   const { address: web3Address } = useWeb3();
   const [activeTab, setActiveTab] = useState("inventory");
@@ -87,6 +87,9 @@ export default function NFTInventory({
 
   // ฟังก์ชันสร้าง NFT
   const handleMintNFT = async () => {
+    toast.info("This feature is being updated.");
+    return;
+    /*
     if (isProcessing || isMinting) return;
 
     const actualAddress = wagmiAddress || web3Address;
@@ -297,6 +300,7 @@ export default function NFTInventory({
     } finally {
       setIsMinting(false);
     }
+    */
   };
 
   // ฟังก์ชันช่วยสำหรับสร้างคำขยายความหายากภาษาไทย
@@ -600,8 +604,8 @@ export default function NFTInventory({
               </div>
 
               <Button
-                onClick={handleMintNFT}
-                disabled={isMinting || isProcessing}
+                onClick={() => toast.info("This feature is being updated.")}
+                disabled={true || isMinting || isProcessing}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
               >
                 {isMinting
@@ -609,8 +613,8 @@ export default function NFTInventory({
                     ? "กำลังสร้าง..."
                     : "Creating..."
                   : locale === "th"
-                  ? "สร้าง NFT"
-                  : "Create NFT"}
+                  ? "สร้าง NFT (ปิดใช้งานชั่วคราว)"
+                  : "Create NFT (Temporarily Disabled)"}
               </Button>
             </div>
 

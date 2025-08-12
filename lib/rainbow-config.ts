@@ -15,7 +15,7 @@ import { QueryClient } from "@tanstack/react-query";
 // Make sure environment variables are present with fallbacks
 const alchemyApiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || "";
 const infuraApiKey = process.env.NEXT_PUBLIC_INFURA_API_KEY || "";
-const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || "";
+const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || "d816145524271775674a249479678768"; // Placeholder
 const networkName = process.env.NEXT_PUBLIC_NETWORK || "sepolia";
 
 // Log environment values for debugging (secure way)

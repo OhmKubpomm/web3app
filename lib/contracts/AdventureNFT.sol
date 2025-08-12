@@ -1,64 +1,106 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
-// Custom errors for better gas efficiency and debugging
-error BatchSizeTooLarge();
-error BatchSizeEmpty();
-error TokenDoesNotExist();
+/**
+ * @title AdventureAssets
+ * @dev An ERC1155 contract for managing various game assets (NFTs).
+ */
+contract AdventureNFT is ERC1155, Ownable, ReentrancyGuard {
+    using Strings for uint256;
 
-contract AdventureNFT is ERC721, Ownable, ReentrancyGuard {
-    uint256 private _tokenIds;
-    mapping(uint256 => string) private _tokenURIs;
-    uint256 public constant BATCH_MINT_LIMIT = 10;
+    string private _baseUri;
 
-    // Events
-    event NFTMinted(address indexed to, uint256 tokenId, string tokenURI);
-    event BatchMinted(address indexed to, uint256[] tokenIds);
+    // A special "access" token ID that users must hold to use certain features.
+    uint256 public constant ACCESS_TOKEN_ID = 0;
 
-    constructor(address initialOwner) ERC721("AdventureNFT", "ADVNFT") Ownable(initialOwner) {}
+    // Mapping from token ID to the creator of that token type
+    mapping(uint256 => address) public creators;
 
-    // Mint a single NFT with explicit error handling
-    function mintNFT(address recipient, string memory tokenURI) public returns (uint256) {
-        uint256 newItemId = _tokenIds++;
-        _mint(recipient, newItemId);
-        _tokenURIs[newItemId] = tokenURI;
-        
-        emit NFTMinted(recipient, newItemId, tokenURI);
-        return newItemId;
+    event TokenTypeCreated(uint256 indexed id, address indexed creator, string uri);
+    event BaseURIChanged(string newUri);
+
+    constructor(
+        string memory baseUri,
+        address initialOwner
+    ) ERC1155(baseUri) Ownable(initialOwner) {
+        _baseUri = baseUri;
+        // The contract itself is the creator of the access token
+        creators[ACCESS_TOKEN_ID] = address(this);
     }
 
-    // Mint multiple NFTs with explicit error handling
-    function batchMintNFT(address recipient, string[] memory tokenURIs) public nonReentrant returns (uint256[] memory) {
-        // Use custom errors instead of require for better gas efficiency
-        if (tokenURIs.length == 0) revert BatchSizeEmpty();
-        if (tokenURIs.length > BATCH_MINT_LIMIT) revert BatchSizeTooLarge();
-        
-        uint256[] memory tokenIds = new uint256[](tokenURIs.length);
-        
-        for (uint256 i = 0; i < tokenURIs.length; i++) {
-            uint256 newItemId = _tokenIds++;
-            _mint(recipient, newItemId);
-            _tokenURIs[newItemId] = tokenURIs[i];
-            tokenIds[i] = newItemId;
-        }
-        
-        emit BatchMinted(recipient, tokenIds);
-        return tokenIds;
+    function uri(uint256 id) public view override returns (string memory) {
+        return string(abi.encodePacked(_baseUri, id.toString(), ".json"));
     }
 
-    // Override tokenURI function with explicit error handling
-    function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        if (!_exists(tokenId)) revert TokenDoesNotExist();
-        return _tokenURIs[tokenId];
+    function setBaseUri(string memory newUri) public onlyOwner {
+        _baseUri = newUri;
+        emit BaseURIChanged(newUri);
     }
 
-    // Check if token exists
-    function _exists(uint256 tokenId) internal view returns (bool) {
-        return _ownerOf(tokenId) != address(0);
+    /**
+     * @dev Allows any user to mint the single "access" token.
+     * This is a specific token that grants them permissions in the dApp.
+     * A user can only hold one of these.
+     */
+    function mintAccessNFT() public nonReentrant {
+        require(balanceOf(msg.sender, ACCESS_TOKEN_ID) == 0, "Already own access token");
+        // Mint one ACCESS_TOKEN_ID NFT to the caller.
+        _mint(msg.sender, ACCESS_TOKEN_ID, 1, "");
+    }
+
+    /**
+     * @dev Allows a user to mint new assets. Here we assume token IDs are pre-defined by the admin.
+     * The user can mint multiple copies of an asset.
+     * @param id The ID of the token type to mint.
+     * @param amount The number of tokens to mint.
+     */
+    function mintAsset(uint256 id, uint256 amount) public nonReentrant {
+        require(id != ACCESS_TOKEN_ID, "Cannot mint access token here");
+        // Further logic could be added here, e.g., requiring payment or specific items.
+        _mint(msg.sender, id, amount, "");
+    }
+
+    /**
+     * @dev Admin function to mint new tokens of a specific ID to a recipient.
+     */
+    function adminMint(address to, uint256 id, uint256 amount, bytes memory data) public onlyOwner nonReentrant {
+        _mint(to, id, amount, data);
+    }
+
+    /**
+     * @dev Admin function to mint multiple types of tokens to a single recipient.
+     */
+    function adminMintBatch(address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data) public onlyOwner nonReentrant {
+        _mintBatch(to, ids, amounts, data);
+    }
+
+    /**
+     * @dev Allows a user to burn their own tokens.
+     */
+    function burn(address from, uint256 id, uint256 amount) public nonReentrant {
+        require(from == msg.sender, "Can only burn your own tokens");
+        _burn(from, id, amount);
+    }
+
+    /**
+     * @dev Allows a user to burn multiple types of their own tokens.
+     */
+    function burnBatch(address from, uint256[] memory ids, uint256[] memory amounts) public nonReentrant {
+        require(from == msg.sender, "Can only burn your own tokens");
+        _burnBatch(from, ids, amounts);
+    }
+
+    function _update(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts
+    ) internal override(ERC1155) {
+        super._update(from, to, ids, amounts);
     }
 }
-

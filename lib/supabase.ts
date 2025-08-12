@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "./supabase-client";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 // สร้าง Supabase client เมื่อมีการเรียกใช้
 export const supabase = {
